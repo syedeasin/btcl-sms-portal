@@ -1,0 +1,106 @@
+{
+  "navigation": {
+    "home": "Home",
+    "about": "About BTCL",
+    "services": "Services",
+    "pricing": "Pricing",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard"
+  },
+  "home": {
+    "hero": {
+      "title": "BTCL Bulk SMS Service",
+      "subtitle": "Reach millions of customers instantly with Bangladesh's most reliable SMS gateway",
+      "description": "Send promotional messages, alerts, and notifications to your customers with our enterprise-grade bulk SMS service. Trusted by thousands of businesses across Bangladesh.",
+      "cta": "Get Started Today",
+      "learn_more": "Learn More"
+    },
+    "features": {
+      "title": "Why Choose BTCL SMS?",
+      "reliable": {
+        "title": "99.9% Uptime",
+        "description": "Industry-leading reliability with redundant infrastructure"
+      },
+      "fast": {
+        "title": "Instant Delivery",
+        "description": "Messages delivered within seconds across all networks"
+      },
+      "secure": {
+        "title": "Secure & Compliant",
+        "description": "Bank-grade security with full regulatory compliance"
+      },
+      "support": {
+        "title": "24/7 Support",
+        "description": "Round-the-clock technical support in Bangla and English"
+      }
+    },
+    "pricing": {
+      "title": "Simple, Transparent Pricing",
+      "subtitle": "Choose the perfect plan for your business needs",
+      "view_all": "View All Plans"
+    },
+    "testimonials": {
+      "title": "Trusted by Leading Businesses",
+      "subtitle": "See what our customers say about BTCL SMS service"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login to Your Account",
+      "email": "Email Address",
+      "password": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Sign In",
+      "no_account": "Don't have an account?",
+      "register_link": "Register here"
+    },
+    "register": {
+      "title": "Create Your Account",
+      "step1": "Basic Information",
+      "step2": "Document Upload",
+      "step3": "Verification",
+      "company": "Company Name",
+      "name": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "password": "Password",
+      "confirm_password": "Confirm Password",
+      "next": "Next Step",
+      "previous": "Previous",
+      "submit": "Complete Registration",
+      "upload_docs": "Upload Documents",
+      "nid_passport": "NID or Passport",
+      "trade_license": "Trade License (Optional)",
+      "verification_pending": "Verification Pending",
+      "verification_message": "Your documents are being reviewed. You will be notified once verification is complete."
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome to your dashboard",
+    "profile": "Profile",
+    "packages": "My Packages",
+    "usage": "Usage Statistics",
+    "billing": "Billing",
+    "support": "Support"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload",
+    "select": "Select",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "language": "Language"
+  }
+}

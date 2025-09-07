@@ -1,0 +1,42 @@
+const createNextIntlPlugin = require('next-intl/plugin');
+
+const withNextIntl = createNextIntlPlugin();
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Disable potentially problematic features
+  swcMinify: false,
+  compiler: {
+    removeConsole: false,
+  },
+  experimental: {
+    esmExternals: false,
+    serverComponentsExternalPackages: [],
+  },
+  // Reduce memory usage
+  webpack: (config, { isServer }) => {
+    // Reduce webpack memory usage
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          default: {
+            minChunks: 1,
+          },
+        },
+      },
+    }
+    
+    // Disable source maps in development to save memory
+    config.devtool = false
+    
+    return config
+  },
+  // Disable image optimization which can cause memory issues
+  images: {
+    unoptimized: true,
+  },
+}
+
+module.exports = withNextIntl(nextConfig)

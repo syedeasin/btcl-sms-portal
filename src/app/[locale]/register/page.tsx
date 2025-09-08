@@ -1,494 +1,17 @@
-// 'use client'
-//
-// import React, { useEffect, useRef, useState } from 'react'
-// import {Header} from "@/components/layout/Header";
-//
-// export default function RegisterPage() {
-//   const [step, setStep] = useState<number>(1)
-//
-//   const [personalInfo, setPersonalInfo] = useState({
-//     firstName: '',
-//     lastName: '',
-//     email: '',
-//     phone: '',
-//     password: '',
-//     confirmPassword: ''
-//   })
-//
-//   const [otherInfo, setOtherInfo] = useState({
-//     address1: '',
-//     address2: '',
-//     city: '',
-//     state: '',
-//     postalCode: '',
-//     country: '',
-//     nidNumber: '',
-//     tradeLicenseNumber: '',
-//     tinNumber: '',
-//     taxReturnDate: '',
-//     nidFile: null as File | null,
-//     tradeLicenseFile: null as File | null,
-//     tinFile: null as File | null,
-//     taxReturnFile: null as File | null,
-//     jointStockFile: null as File | null,
-//     btrcFile: null as File | null,
-//     photoFile: null as File | null,
-//     slaFile: null as File | null,
-//     termsAccepted: false
-//   })
-//
-//
-//   const [otp, setOtp] = useState<string>('')
-//
-//   // OTP timer state
-//   const [secondsLeft, setSecondsLeft] = useState<number>(60)
-//   const intervalRef = useRef<number | null>(null)
-//
-//   // start timer helper
-//   const startTimer = (initial = 60) => {
-//     setSecondsLeft(initial)
-//     if (intervalRef.current) {
-//       clearInterval(intervalRef.current)
-//       intervalRef.current = null
-//     }
-//     intervalRef.current = window.setInterval(() => {
-//       setSecondsLeft(prev => {
-//         if (prev <= 1) {
-//           if (intervalRef.current) {
-//             clearInterval(intervalRef.current)
-//             intervalRef.current = null
-//           }
-//           return 0
-//         }
-//         return prev - 1
-//       })
-//     }, 1000) as unknown as number
-//   }
-//
-//   // On entering step 3, start the OTP timer
-//   useEffect(() => {
-//     if (step === 3) {
-//       startTimer(60)
-//     } else {
-//       // clear timer if we leave step 3
-//       if (intervalRef.current) {
-//         clearInterval(intervalRef.current)
-//         intervalRef.current = null
-//       }
-//     }
-//
-//     return () => {
-//       if (intervalRef.current) {
-//         clearInterval(intervalRef.current)
-//         intervalRef.current = null
-//       }
-//     }
-//   }, [step])
-//
-//   // format mm:ss
-//   const formatTime = (s: number) => {
-//     const m = Math.floor(s / 60)
-//     const sec = s % 60
-//     const mm = m.toString().padStart(2, '0')
-//     const ss = sec.toString().padStart(2, '0')
-//     return `${mm}:${ss}`
-//   }
-//
-//   const handleFileChange = (field: string, file: File | null) => {
-//     setOtherInfo(prev => ({ ...prev, [field]: file }))
-//   }
-//
-//   const handleNext = () => {
-//     if (step < 3) setStep(prev => prev + 1)
-//   }
-//
-//   const handleBack = () => {
-//     if (step > 1) setStep(prev => prev - 1)
-//   }
-//
-//   const resendOtp = () => {
-//     // simulate OTP sending request
-//     console.log('Resend OTP requested — simulate API call')
-//     // restart timer
-//     startTimer(60)
-//   }
-//
-//   const handleSubmit = (e: React.FormEvent) => {
-//     e.preventDefault()
-//
-//     if (step !== 3) {
-//       // protect against accidental form submit on earlier steps
-//       return
-//     }
-//
-//     // Confirm / final submit (Confirm button triggers this)
-//     // Here you'd call your API to verify OTP & create account
-//     console.log('Final submit with data:', { personalInfo, otherInfo, otp })
-//     alert('Submitted (simulate). Check console for payload.')
-//   }
-//
-//   return (
-//       <div className="min-h-screen bg-gray-50">
-//         <Header/>
-//         <div className="min-h-screen bg-gray-50 py-10">
-//           <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8">
-//             {/* Title */}
-//             <div className="text-center mb-8">
-//               <h1 className="text-2xl font-bold text-black">
-//                 {step === 1 && 'Create Your Account'}
-//                 {step === 2 && 'Upload Your Documents'}
-//                 {step === 3 && 'Confirm OTP Verification'}
-//               </h1>
-//               <p className="text-gray-600">Please provide your information to get started</p>
-//             </div>
-//
-//             {/* Steps header (tabs) */}
-//             <div className="flex border mb-6">
-//               {['Personal Information', 'Other Information', 'Verification'].map((label, i) => (
-//                   <div
-//                       key={i}
-//                       onClick={() => setStep(i + 1)}
-//                       className={`flex-1 text-center py-3 border-r last:border-r-0 cursor-pointer ${
-//                           step === i + 1 ? 'bg-gray-100 font-medium text-black' : 'bg-white text-black'
-//                       }`}
-//                   >
-//                     {i + 1}. {label}
-//                   </div>
-//               ))}
-//             </div>
-//
-//             {/* Form */}
-//             <form onSubmit={handleSubmit} className="space-y-6">
-//               {/* STEP 1 */}
-//               {step === 1 && (
-//                   <>
-//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">First Name</label>
-//                         <input
-//                             type="text"
-//                             value={personalInfo.firstName}
-//                             onChange={e => setPersonalInfo({...personalInfo, firstName: e.target.value})}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                             required
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Last Name</label>
-//                         <input
-//                             type="text"
-//                             value={personalInfo.lastName}
-//                             onChange={e => setPersonalInfo({...personalInfo, lastName: e.target.value})}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                             required
-//                         />
-//                       </div>
-//                     </div>
-//
-//                     <div>
-//                       <label className="block text-black font-medium mb-1">Email Address</label>
-//                       <input
-//                           type="email"
-//                           value={personalInfo.email}
-//                           onChange={e => setPersonalInfo({...personalInfo, email: e.target.value})}
-//                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                           required
-//                       />
-//                     </div>
-//
-//                     <div>
-//                       <label className="block text-black font-medium mb-1">Phone Number</label>
-//                       <input
-//                           type="tel"
-//                           value={personalInfo.phone}
-//                           onChange={e => setPersonalInfo({...personalInfo, phone: e.target.value})}
-//                           placeholder="+880 1XXXXXXXXX"
-//                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                           required
-//                       />
-//                     </div>
-//
-//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Password</label>
-//                         <input
-//                             type="password"
-//                             value={personalInfo.password}
-//                             onChange={e => setPersonalInfo({...personalInfo, password: e.target.value})}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                             required
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Confirm Password</label>
-//                         <input
-//                             type="password"
-//                             value={personalInfo.confirmPassword}
-//                             onChange={e => setPersonalInfo({...personalInfo, confirmPassword: e.target.value})}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                             required
-//                         />
-//                       </div>
-//                     </div>
-//                   </>
-//               )}
-//
-//               {/* STEP 2 */}
-//               {step === 2 && (
-//                   <>
-//                     {/* New Address Fields */}
-//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Address 1</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.address1 || ''}
-//                             onChange={e => setOtherInfo({ ...otherInfo, address1: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Address 2</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.address2 || ''}
-//                             onChange={e => setOtherInfo({ ...otherInfo, address2: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">City</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.city || ''}
-//                             onChange={e => setOtherInfo({ ...otherInfo, city: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">State</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.state || ''}
-//                             onChange={e => setOtherInfo({ ...otherInfo, state: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Postal Code</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.postalCode || ''}
-//                             onChange={e => setOtherInfo({ ...otherInfo, postalCode: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Country</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.country || ''}
-//                             onChange={e => setOtherInfo({ ...otherInfo, country: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                     </div>
-//
-//                     {/* Existing Fields */}
-//                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">NID Number</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.nidNumber}
-//                             onChange={e => setOtherInfo({ ...otherInfo, nidNumber: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload NID</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('nidFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Trade License Number</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.tradeLicenseNumber}
-//                             onChange={e => setOtherInfo({ ...otherInfo, tradeLicenseNumber: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload Trade License</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('tradeLicenseFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">TIN Number</label>
-//                         <input
-//                             type="text"
-//                             value={otherInfo.tinNumber}
-//                             onChange={e => setOtherInfo({ ...otherInfo, tinNumber: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload TIN</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('tinFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Tax Return Date</label>
-//                         <input
-//                             type="date"
-//                             value={otherInfo.taxReturnDate}
-//                             onChange={e => setOtherInfo({ ...otherInfo, taxReturnDate: e.target.value })}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload Last Tax Return</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('taxReturnFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload Joint Stock Registration Documents</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('jointStockFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload BTRC Registration</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('btrcFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload Photo</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('photoFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                       <div>
-//                         <label className="block text-black font-medium mb-1">Upload SLA</label>
-//                         <input
-//                             type="file"
-//                             onChange={e => handleFileChange('slaFile', e.target.files?.[0] ?? null)}
-//                             className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                         />
-//                       </div>
-//                     </div>
-//
-//                     <label className="flex items-center mt-4">
-//                       <input
-//                           type="checkbox"
-//                           checked={otherInfo.termsAccepted}
-//                           onChange={e => setOtherInfo({ ...otherInfo, termsAccepted: e.target.checked })}
-//                           className="mr-2 text-black"
-//                       />
-//                       <span className="text-black">Check our </span>
-//                       <span className="text-[#00A651] ml-1 cursor-pointer">terms &amp; conditions</span>
-//                     </label>
-//                   </>
-//               )}
-//
-//
-//               {/* STEP 3 (OTP) */}
-//               {step === 3 && (
-//                   <>
-//                     <div>
-//                       <label className="block text-black font-medium mb-1">Please provide verification code</label>
-//                       <input
-//                           type="text"
-//                           value={otp}
-//                           onChange={e => setOtp(e.target.value)}
-//                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-//                       />
-//                     </div>
-//
-//                     <div className="flex gap-4">
-//                       {/* Confirm is the submit button for the form */}
-//                       <button type="submit" className="flex-1 bg-[#00A651] text-white py-2 px-4 rounded-md">
-//                         Confirm
-//                       </button>
-//
-//                       {/* Send Again - shows timer while disabled */}
-//                       <button
-//                           type="button"
-//                           onClick={() => {
-//                             if (secondsLeft === 0) {
-//                               resendOtp()
-//                             }
-//                           }}
-//                           disabled={secondsLeft > 0}
-//                           aria-disabled={secondsLeft > 0}
-//                           className={`flex-1 text-white py-2 px-4 rounded-md ${
-//                               secondsLeft > 0 ? 'bg-black/80 cursor-not-allowed' : 'bg-black'
-//                           }`}
-//                       >
-//                         {secondsLeft > 0 ? `Send Again (${formatTime(secondsLeft)})` : 'Send Again'}
-//                       </button>
-//                     </div>
-//                   </>
-//               )}
-//
-//               {/* Navigation (only show on steps 1 & 2) */}
-//               {step !== 3 && (
-//                   <div className="flex justify-between pt-4 gap-4">
-//                     {step > 1 ? (
-//                         <button type="button" onClick={handleBack} className="bg-gray-300 px-4 py-2 rounded-md w-full">
-//                           Back
-//                         </button>
-//                     ) : (
-//                         <div/>
-//                     )}
-//
-//                     <button type="button" onClick={handleNext} className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full">
-//                       Next Step
-//                     </button>
-//                   </div>
-//               )}
-//             </form>
-//           </div>
-//         </div>
-//       </div>
-//         )
-//         }
-
-
-
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useForm, Controller, SubmitHandler } from 'react-hook-form'
 import { Header } from "@/components/layout/Header"
 import { createPartner, addPartnerDetails } from '@/lib/api-client/partner'
+
+// Country list with codes
+const countries = [
+  { code: 'BD', name: 'Bangladesh' },
+  { code: 'US', name: 'United States' },
+  { code: 'UK', name: 'United Kingdom' },
+  // Add more countries as needed
+];
 
 type PersonalInfo = {
   firstName: string
@@ -624,7 +147,6 @@ export default function RegisterPage() {
 
   const handlePersonalInfoSubmit: SubmitHandler<PersonalInfo> =  (data) => {
     console.log('Personal info submitted:', data)
-
     setStep(2)
   }
 
@@ -647,7 +169,7 @@ export default function RegisterPage() {
         city: otherInfoData.city,
         state: otherInfoData.state,
         postalCode: otherInfoData.postalCode,
-        country: otherInfoData.country,
+        country: otherInfoData.country, // This should now be a code like 'BD'
         alternateNameInvoice: "Invoice Name",
         alternateNameOther: "Other Name",
         vatRegistrationNo: otherInfoData.tinNumber || "N/A",
@@ -680,13 +202,9 @@ export default function RegisterPage() {
         address3: otherInfoData.address3,
         address4: otherInfoData.address4,
         gender: "Male",
-        // city: otherInfoData.city,
-        // state: otherInfoData.state,
-        // postalCode: otherInfoData.postalCode,
-        countryCode: otherInfoData.country,
+        countryCode: otherInfoData.country, // This should now be a code like 'BD'
         docSerialNumber: otherInfoData.nidNumber,
         docexpirydate: otherInfoData.taxReturnDate,
-
 
         tradeliscense: otherInfoData.tradeLicenseFile ?? undefined,
         tincertificate: otherInfoData.tinFile ?? undefined,
@@ -698,9 +216,6 @@ export default function RegisterPage() {
         jointStockFile:otherInfoData.jointStockFile ?? undefined,
         photoFile:otherInfoData.photoFile ?? undefined,
         slaFile:otherInfoData.slaFile ?? undefined,
-
-
-        // add other files if provided
       });
 
       console.log("Partner details added:", detailsResponse);
@@ -715,21 +230,12 @@ export default function RegisterPage() {
     }
   };
 
-
-
-
-
-
-
-
-
   const handleOtpSubmit: SubmitHandler<OtpInfo> = async (data) => {
     setIsSubmitting(true)
     try {
       // Step 1: Create partner
       // Show success message
       alert('Registration completed successfully!')
-
     } catch (error) {
       console.error('Registration failed:', error)
       alert('Registration failed. Please try again.')
@@ -1103,13 +609,19 @@ export default function RegisterPage() {
                           rules={{required: 'Country is required'}}
                           render={({field, fieldState}) => (
                               <>
-                                <input
-                                    type="text"
+                                <select
                                     {...field}
                                     className={`w-full px-3 py-2 border ${
                                         fieldState.error ? 'border-red-500' : 'border-gray-300'
                                     } rounded-md text-black`}
-                                />
+                                >
+                                  <option value="">Select Country</option>
+                                  {countries.map((country) => (
+                                      <option key={country.code} value={country.code}>
+                                        {country.name}
+                                      </option>
+                                  ))}
+                                </select>
                                 {fieldState.error && (
                                     <p className="text-red-500 text-sm mt-1">{fieldState.error.message}</p>
                                 )}

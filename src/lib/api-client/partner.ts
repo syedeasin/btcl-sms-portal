@@ -6,7 +6,7 @@ import axios from 'axios';
 const BASE_URL = 'http://103.95.96.76:8001/FREESWITCHREST/partner/create-partner';
 // const BASE_URL2 ="http://192.168.0.213:5071/FREESWITCHREST/api/partnerdetails/add"
 const BASE_URL2 ="http://103.95.96.76:8001/FREESWITCHREST/partner/partner-documents"
-const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjEsIm5hbWUiOiJST0xFX0FETUlOIiwiZGVzY3JpcHRpb24iOiJhZG1pbiJ9XSwiaWRQYXJ0bmVyIjo3Miwic3ViIjoiYWRtaW50ZWxjby5jb20iLCJpYXQiOjE3NTcyMzE1NTUsImV4cCI6MTc1NzMxNzk1NX0.bgn2Vtw8ijG6q9KpIWMWGOgqM4xj_lUJ71baut7m5Ws";
+const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjEsIm5hbWUiOiJST0xFX0FETUlOIiwiZGVzY3JpcHRpb24iOiJhZG1pbiJ9XSwiaWRQYXJ0bmVyIjo3Miwic3ViIjoiYWRtaW50ZWxjby5jb20iLCJpYXQiOjE3NTczMTQ5NjQsImV4cCI6MTc1NzQwMTM2NH0.DKjP-d-9mQ0p1ogKgk_mOlrYG75zr7R5iB5r3wabHK4";
 
 export interface CreatePartnerPayload {
     partnerName: string;
@@ -172,7 +172,7 @@ export const addPartnerDetails = async (
     payload: PartnerDetailsPayload
 ): Promise<AddPartnerDetailsResponse> => {
 
-    const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjEsIm5hbWUiOiJST0xFX0FETUlOIiwiZGVzY3JpcHRpb24iOiJhZG1pbiJ9XSwiaWRQYXJ0bmVyIjo3Miwic3ViIjoiYWRtaW50ZWxjby5jb20iLCJpYXQiOjE3NTcyMzE1NTUsImV4cCI6MTc1NzMxNzk1NX0.bgn2Vtw8ijG6q9KpIWMWGOgqM4xj_lUJ71baut7m5Ws";
+    const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjEsIm5hbWUiOiJST0xFX0FETUlOIiwiZGVzY3JpcHRpb24iOiJhZG1pbiJ9XSwiaWRQYXJ0bmVyIjo3Miwic3ViIjoiYWRtaW50ZWxjby5jb20iLCJpYXQiOjE3NTczMTQ5NjQsImV4cCI6MTc1NzQwMTM2NH0.DKjP-d-9mQ0p1ogKgk_mOlrYG75zr7R5iB5r3wabHK4";
 
     try {
         const formData = new FormData();

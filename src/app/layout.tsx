@@ -2,6 +2,7 @@
 
 import './globals.css'
 import { SessionProvider } from 'next-auth/react'
+import ToastProvider from '@/components/toastProvider/ToastProvider'
 
 export default function RootLayout({
                                        children,
@@ -13,6 +14,7 @@ export default function RootLayout({
         <body>
         <SessionProvider>
             {children}
+            <ToastProvider />
         </SessionProvider>
         </body>
         </html>

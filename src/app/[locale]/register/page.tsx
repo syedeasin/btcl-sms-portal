@@ -1268,6 +1268,8 @@ export default function RegisterPage() {
         setStep(3)
     }
 
+    // In your RegisterPage component, update the handleOtherInfoSubmit function:
+
     const handleOtherInfoSubmit: SubmitHandler<OtherInfo> = async (data) => {
         console.log("Other info submitted:", data);
         setIsSubmitting(true);
@@ -1276,9 +1278,12 @@ export default function RegisterPage() {
             // 1. Gather both form data
             const personalInfoData = personalInfoForm.getValues();
             const otherInfoData = otherInfoForm.getValues();
-            console.log(otherInfoData)
+
+            console.log('Personal Info Data:', personalInfoData);
+            console.log('Other Info Data:', otherInfoData);
+
             // 2. First call: create partner
-            const partnerResponse = await createPartner({
+            const partnerPayload = {
                 partnerName: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
                 telephone: personalInfoData.phone,
                 email: personalInfoData.email,
@@ -1288,42 +1293,49 @@ export default function RegisterPage() {
                 state: otherInfoData.state,
                 postalCode: otherInfoData.postalCode,
                 country: otherInfoData.country,
-                alternateNameInvoice: "Invoice Name",
-                alternateNameOther: "Other Name",
+                alternateNameInvoice: `${personalInfoData.firstName} ${personalInfoData.lastName}`, // Use actual name instead of placeholder
+                alternateNameOther: personalInfoData.phone, // Use phone or another meaningful value
                 vatRegistrationNo: otherInfoData.tinNumber || "N/A",
                 invoiceAddress: otherInfoData.address1,
                 customerPrePaid: 1,
                 partnerType: 1,
                 defaultCurrency: 1,
                 callSrcId: 2,
-            });
+            };
 
+            console.log('Creating partner with payload:', partnerPayload);
+            const partnerResponse = await createPartner(partnerPayload);
             console.log("Partner created:", partnerResponse);
 
-            // Extract partnerId
-            const idPartner = partnerResponse?.idPartner;
+            // Extract partnerId - handle both possible field names
+            const idPartner = partnerResponse?.idPartner || partnerResponse?.id;
+
             if (!idPartner) {
+                console.error('Partner response:', partnerResponse);
                 throw new Error("Partner ID missing in createPartner response");
             }
 
+            console.log('Partner ID received:', idPartner);
+
             // 3. Second call: add partner details
-            const detailsResponse = await addPartnerDetails({
+            const detailsPayload = {
                 partnerId: idPartner,
                 doctype: "nid",
                 phonenumber: personalInfoData.phone,
                 email: personalInfoData.email,
                 firstName: personalInfoData.firstName,
                 lastName: personalInfoData.lastName,
-                dob: "1995-01-01", // pick from form if you have it
+                dob: "1995-01-01", // You should add a DOB field to your form if needed
                 address1: otherInfoData.address1,
                 address2: otherInfoData.address2,
                 address3: otherInfoData.address3,
                 address4: otherInfoData.address4,
-                gender: "Male",
+                gender: "Male", // You should add a gender field to your form if needed
                 countryCode: otherInfoData.country,
                 docSerialNumber: otherInfoData.nidNumber,
                 docexpirydate: otherInfoData.taxReturnDate,
 
+                // Files
                 tradeliscense: otherInfoData.tradeLicenseFile ?? undefined,
                 tincertificate: otherInfoData.tinFile ?? undefined,
                 identityCardFrontSide: otherInfoData.identityCardFrontSide ?? undefined,
@@ -1334,17 +1346,24 @@ export default function RegisterPage() {
                 jointStockFile: otherInfoData.jointStockFile ?? undefined,
                 photoFile: otherInfoData.photoFile ?? undefined,
                 slaFile: otherInfoData.slaFile ?? undefined,
-            });
+            };
 
+            console.log('Adding partner details with payload:', detailsPayload);
+            const detailsResponse = await addPartnerDetails(detailsPayload);
             console.log("Partner details added:", detailsResponse);
 
-            // alert("Registration completed successfully!");
             toast.success("Registration completed successfully!");
-            // You might want to redirect to a success page here
             router.push('/');
+
         } catch (error) {
             console.error("Registration failed:", error);
-            alert("Registration failed. Please try again.");
+
+            // Provide more specific error messages
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error("Registration failed. Please try again.");
+            }
         } finally {
             setIsSubmitting(false);
         }

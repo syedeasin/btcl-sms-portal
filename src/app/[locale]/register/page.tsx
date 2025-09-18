@@ -1062,6 +1062,8 @@ import { Header } from "@/components/layout/Header"
 import { createPartner, addPartnerDetails, sendOtp, verifyOtp } from '@/lib/api-client/partner'
 import {useRouter} from "next/navigation";
 import toast from "react-hot-toast";
+import { loginUser, setAuthToken } from '@/lib/api-client/auth'
+
 
 // Country list with codes
 const countries = [
@@ -1293,8 +1295,8 @@ export default function RegisterPage() {
                 state: otherInfoData.state,
                 postalCode: otherInfoData.postalCode,
                 country: otherInfoData.country,
-                alternateNameInvoice: `${personalInfoData.firstName} ${personalInfoData.lastName}`, // Use actual name instead of placeholder
-                alternateNameOther: personalInfoData.phone, // Use phone or another meaningful value
+                alternateNameInvoice: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
+                alternateNameOther: personalInfoData.phone,
                 vatRegistrationNo: otherInfoData.tinNumber || "N/A",
                 invoiceAddress: otherInfoData.address1,
                 customerPrePaid: 1,
@@ -1325,12 +1327,12 @@ export default function RegisterPage() {
                 email: personalInfoData.email,
                 firstName: personalInfoData.firstName,
                 lastName: personalInfoData.lastName,
-                dob: "1995-01-01", // You should add a DOB field to your form if needed
+                dob: "1995-01-01",
                 address1: otherInfoData.address1,
                 address2: otherInfoData.address2,
                 address3: otherInfoData.address3,
                 address4: otherInfoData.address4,
-                gender: "Male", // You should add a gender field to your form if needed
+                gender: "Male",
                 countryCode: otherInfoData.country,
                 docSerialNumber: otherInfoData.nidNumber,
                 docexpirydate: otherInfoData.taxReturnDate,
@@ -1352,8 +1354,22 @@ export default function RegisterPage() {
             const detailsResponse = await addPartnerDetails(detailsPayload);
             console.log("Partner details added:", detailsResponse);
 
-            toast.success("Registration completed successfully!");
-            router.push('/');
+            // Auto-login after successful registration
+            try {
+                const loginResponse = await loginUser({
+                    email: personalInfoData.email,
+                    password: personalInfoData.password
+                });
+
+                setAuthToken(loginResponse.token);
+                toast.success("Registration completed successfully! You are now logged in.");
+                router.push('/dashboard');
+            } catch (loginError) {
+                console.error('Auto login failed:', loginError);
+                // Still show success message but redirect to login page
+                toast.success("Registration completed successfully! Please login with your credentials.");
+                router.push('/login');
+            }
 
         } catch (error) {
             console.error("Registration failed:", error);

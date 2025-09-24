@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -21,41 +20,42 @@ interface Package {
   features: string[]
 }
 
-const packageData: Record<string, Package> = {
+// const packageData: Record<string, Package> = {
+//
+//   starter: {
+//     id: 101,
+//     name: 'Starter Package',
+//     price: 500,
+//     sms: 1000,
+//     validity: 30,
+//     features: ['Basic API Access', 'Email Support', 'Standard Delivery', 'Basic Reporting']
+//   },
+//   business: {
+//     id: 102,
+//     name: 'Business Package',
+//     price: 2000,
+//     sms: 5000,
+//     validity: 60,
+//     features: ['Advanced API Access', 'Priority Support', 'Fast Delivery', 'Custom Sender ID', 'Detailed Analytics']
+//   },
+//   enterprise: {
+//     id: 103,
+//     name: 'Enterprise Package',
+//     price: 8000,
+//     sms: 25000,
+//     validity: 90,
+//     features: ['Premium API Access', '24/7 Support', 'Instant Delivery', 'Multiple Sender IDs', 'Advanced Analytics', 'Dedicated Manager']
+//   },
+//   premium: {
+//     id: 104,
+//     name: 'Premium Package',
+//     price: 15000,
+//     sms: 50000,
+//     validity: 120,
+//     features: ['Ultimate API Access', 'VIP Support', 'Priority Routing', 'Unlimited Sender IDs', 'Real-time Analytics', 'Account Manager', 'White-label Solution']
+//   }
+// }
 
-  starter: {
-    id: 101,
-    name: 'Starter Package',
-    price: 500,
-    sms: 1000,
-    validity: 30,
-    features: ['Basic API Access', 'Email Support', 'Standard Delivery', 'Basic Reporting']
-  },
-  business: {
-    id: 102,
-    name: 'Business Package',
-    price: 2000,
-    sms: 5000,
-    validity: 60,
-    features: ['Advanced API Access', 'Priority Support', 'Fast Delivery', 'Custom Sender ID', 'Detailed Analytics']
-  },
-  enterprise: {
-    id: 103,
-    name: 'Enterprise Package',
-    price: 8000,
-    sms: 25000,
-    validity: 90,
-    features: ['Premium API Access', '24/7 Support', 'Instant Delivery', 'Multiple Sender IDs', 'Advanced Analytics', 'Dedicated Manager']
-  },
-  premium: {
-    id: 104,
-    name: 'Premium Package',
-    price: 15000,
-    sms: 50000,
-    validity: 120,
-    features: ['Ultimate API Access', 'VIP Support', 'Priority Routing', 'Unlimited Sender IDs', 'Real-time Analytics', 'Account Manager', 'White-label Solution']
-  }
-}
 
 export default function PurchasePage({
   params: { locale, packageId }
@@ -69,6 +69,54 @@ export default function PurchasePage({
   const [quantity, setQuantity] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
+
+  const packageData: Record<string, Package> = {
+    small: {
+      id: 201,
+      name: locale === 'en' ? 'Small Business' : 'ছোট ব্যবসা',
+      price: 20000 * 0.32, // total = sms × rate
+      sms: 20000,
+      validity: 30,
+      features: [
+        locale === 'en' ? 'Basic API Access' : 'বেসিক API অ্যাক্সেস',
+        locale === 'en' ? 'Email Support' : 'ইমেইল সাপোর্ট',
+        locale === 'en' ? 'Standard Delivery' : 'স্ট্যান্ডার্ড ডেলিভারি',
+        locale === 'en' ? 'Basic Reports' : 'বেসিক রিপোর্ট',
+        locale === 'en' ? 'Single Sender ID' : 'একটি প্রেরক ID',
+      ],
+    },
+    medium: {
+      id: 202,
+      name: locale === 'en' ? 'Medium Business' : 'মিডিয়াম ব্যবসা',
+      price: 50000 * 0.30,
+      sms: 50000,
+      validity: 60,
+      features: [
+        locale === 'en' ? 'Advanced API' : 'অ্যাডভান্সড API',
+        locale === 'en' ? 'Priority Support' : 'অগ্রাধিকার সাপোর্ট',
+        locale === 'en' ? 'Fast Delivery' : 'দ্রুত ডেলিভারি',
+        locale === 'en' ? 'Custom Sender ID' : 'কাস্টম প্রেরক ID',
+        locale === 'en' ? 'Detailed Analytics' : 'বিস্তারিত অ্যানালিটিক্স',
+        locale === 'en' ? 'Multiple Projects' : 'একাধিক প্রোজেক্ট',
+      ],
+    },
+    large: {
+      id: 203,
+      name: locale === 'en' ? 'Large Business' : 'বড় ব্যবসা',
+      price: 100000 * 0.28,
+      sms: 100000,
+      validity: 90,
+      features: [
+        locale === 'en' ? 'Premium API' : 'প্রিমিয়াম API',
+        locale === 'en' ? '24/7 Phone Support' : '২৪/৭ ফোন সাপোর্ট',
+        locale === 'en' ? 'Instant Delivery' : 'তাৎক্ষণিক ডেলিভারি',
+        locale === 'en' ? 'Multiple Sender IDs' : 'একাধিক প্রেরক ID',
+        locale === 'en' ? 'Advanced Analytics' : 'উন্নত অ্যানালিটিক্স',
+        locale === 'en' ? 'Dedicated Manager' : 'ডেডিকেটেড ম্যানেজার',
+        locale === 'en' ? 'Priority Routing' : 'অগ্রাধিকার রাউটিং',
+      ],
+    },
+  }
 
   const pkg = packageData[packageId]
 
@@ -109,48 +157,6 @@ export default function PurchasePage({
 
   const totalAmount = pkg.price * quantity
   const totalSMS = pkg.sms * quantity
-
-  // const handlePurchase = async () => {
-  //   if (!session?.user) {
-  //     router.push(`/${locale}/auth/login`)
-  //     return
-  //   }
-  //
-  //   setIsProcessing(true)
-  //   setError('')
-  //
-  //   try {
-  //     const response = await fetch('/api/payment/initiate', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         packageId: pkg.id,
-  //         quantity: quantity
-  //       })
-  //     })
-  //
-  //     const data = await response.json()
-  //
-  //     if (!response.ok) {
-  //       throw new Error(data.error || 'Payment initiation failed')
-  //     }
-  //
-  //     if (data.success && data.paymentUrl) {
-  //       // Redirect to SSL Commerz payment gateway
-  //       window.location.href = data.paymentUrl
-  //     } else {
-  //       throw new Error('Invalid payment response')
-  //     }
-  //
-  //   } catch (error) {
-  //     console.error('Purchase error:', error)
-  //     setError(error instanceof Error ? error.message : 'An error occurred')
-  //   } finally {
-  //     setIsProcessing(false)
-  //   }
-  // }
 
   return (
     <div className="min-h-screen bg-gray-50">

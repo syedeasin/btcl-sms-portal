@@ -122,7 +122,6 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter, useParams } from 'next/navigation' // Add useParams import
 import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -250,7 +249,6 @@ export default function LoginPage() { // Remove params from function signature
             </Card>
           </div>
         </div>
-        <Footer />
       </div>
   )
 }

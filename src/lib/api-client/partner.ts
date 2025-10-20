@@ -4,7 +4,7 @@ import axios from 'axios';
 const BASE_URL = 'http://103.95.96.76:8001/FREESWITCHREST/partner/create-partner';
 const BASE_URL2 = "http://103.95.96.76:8001/FREESWITCHREST/partner/partner-documents";
 const OTP_BASE_URL = "http://103.95.96.76:8001/FREESWITCHREST";
-const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjEsIm5hbWUiOiJST0xFX0FETUlOIiwiZGVzY3JpcHRpb24iOiJhZG1pbiJ9XSwiaWRQYXJ0bmVyIjo3Miwic3ViIjoiYWRtaW50ZWxjby5jb20iLCJpYXQiOjE3NTgxODAyMjYsImV4cCI6MTc1ODI2NjYyNn0.ipeDXMwW6vAbXMaI5VgwbZTDlEW5FVJYbjX06O4ZXKo";
+const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjgsIm5hbWUiOiJST0xFX0FETUlOIiwiZGVzY3JpcHRpb24iOiJhZG1pbiJ9XSwiaWRQYXJ0bmVyIjoxMTQsInN1YiI6ImFkbWludGVsY28uY29tIiwiaWF0IjoxNzYwOTQ3MjMwLCJleHAiOjE3NjEwMzM2MzB9.-5U5IrP_k082hd5s1GG-ow7r8C5YZVpiR8uL9hahI2E";
 
 // OTP API functions
 export const sendOtp = async (phoneNumber: string): Promise<{ message: string }> => {

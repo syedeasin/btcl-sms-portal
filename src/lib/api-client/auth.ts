@@ -1,32 +1,3 @@
-// // lib/api-client/auth.ts
-// import axios from 'axios';
-//
-// const BASE_URL = 'https://iptsp.cosmocom.net:8001/AUTHENTICATION';
-//
-// export interface LoginResponse {
-//     token: string;
-//     authRoles: { id: number; name: string; description: string }[];
-//     sessionStartDateTime: string;
-//     userContext: string;
-//     message: string | null;
-// }
-//
-// export interface LoginPayload {
-//     email: string;
-//     password: string;
-// }
-//
-// export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> => {
-//     try {
-//         const response = await axios.post<LoginResponse>(`${BASE_URL}/auth/login`, payload);
-//         return response.data;
-//     } catch (error) {
-//         console.error('Login API error:', error);
-//         throw error;
-//     }
-// };
-
-
 // lib/api-client/auth.ts
 import axios from 'axios';
 
@@ -45,6 +16,22 @@ export interface LoginPayload {
     password: string;
 }
 
+// Add RegisterPayload interface
+export interface RegisterPayload {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+}
+
+// Add RegisterResponse interface (assuming it returns similar to login)
+export interface RegisterResponse {
+    token: string;
+    message?: string;
+    // Add other fields if your API returns them
+}
+
 export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> => {
     try {
         const response = await axios.post<LoginResponse>(`${BASE_URL}/auth/login`, payload);
@@ -55,7 +42,43 @@ export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> =
     }
 };
 
-// Add token management functions
+// NEW: Add registration function
+export const registerUser = async (payload: RegisterPayload): Promise<RegisterResponse> => {
+    try {
+        console.log('Registering user with payload:', payload);
+
+        // Try the /register endpoint first
+        const response = await axios.post<RegisterResponse>(
+            `${BASE_URL}/auth/register`,
+            payload
+        );
+
+        console.log('Registration response:', response.data);
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('Registration API error:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+            });
+
+            // Provide more specific error messages
+            if (error.response?.status === 400) {
+                throw new Error(error.response?.data?.message || 'Invalid registration data');
+            } else if (error.response?.status === 409) {
+                throw new Error('User already exists with this email');
+            } else if (error.response?.status === 500) {
+                throw new Error('Server error. Please try again later.');
+            }
+        }
+
+        console.error('Registration error:', error);
+        throw error;
+    }
+};
+
+// Token management functions
 export const setAuthToken = (token: string) => {
     if (typeof window !== 'undefined') {
         localStorage.setItem('authToken', token);

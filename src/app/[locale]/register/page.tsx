@@ -1058,12 +1058,13 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useForm, Controller, SubmitHandler } from 'react-hook-form'
+import { useRouter, useParams } from 'next/navigation'
 import { Header } from "@/components/layout/Header"
 import { createPartner, addPartnerDetails, sendOtp, verifyOtp } from '@/lib/api-client/partner'
-import {useRouter} from "next/navigation";
+// import {useRouter} from "next/navigation";
 import toast from "react-hot-toast";
-import { loginUser, setAuthToken } from '@/lib/api-client/auth'
-
+// import { loginUser, setAuthToken } from '@/lib/api-client/auth'
+import { registerUser, setAuthToken } from '@/lib/api-client/auth'
 
 // Country list with codes
 const countries = [
@@ -1121,6 +1122,9 @@ export default function RegisterPage() {
     const [verifiedPhone, setVerifiedPhone] = useState('')
     const intervalRef = useRef<number | null>(null)
     const router = useRouter();
+    const params = useParams()
+    const locale = (params?.locale as string) || 'en'
+
 
     // Form hooks for each step
     const verificationForm = useForm<VerificationInfo>({
@@ -1272,19 +1276,173 @@ export default function RegisterPage() {
 
     // In your RegisterPage component, update the handleOtherInfoSubmit function:
 
+    // const handleOtherInfoSubmit: SubmitHandler<OtherInfo> = async (data) => {
+    //     console.log("Other info submitted:", data);
+    //     setIsSubmitting(true);
+    //
+    //     try {
+    //         // 1. Gather both form data
+    //         const personalInfoData = personalInfoForm.getValues();
+    //         const otherInfoData = otherInfoForm.getValues();
+    //
+    //         console.log('Personal Info Data:', personalInfoData);
+    //         console.log('Other Info Data:', otherInfoData);
+    //
+    //         // 2. First call: create partner
+    //         const partnerPayload = {
+    //             partnerName: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
+    //             telephone: personalInfoData.phone,
+    //             email: personalInfoData.email,
+    //             address1: otherInfoData.address1,
+    //             address2: otherInfoData.address2 || "",
+    //             city: otherInfoData.city,
+    //             state: otherInfoData.state,
+    //             postalCode: otherInfoData.postalCode,
+    //             country: otherInfoData.country,
+    //             alternateNameInvoice: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
+    //             alternateNameOther: personalInfoData.phone,
+    //             vatRegistrationNo: otherInfoData.tinNumber || "N/A",
+    //             invoiceAddress: otherInfoData.address1,
+    //             customerPrePaid: 1,
+    //             partnerType: 1,
+    //             defaultCurrency: 1,
+    //             callSrcId: 2,
+    //         };
+    //
+    //         console.log('Creating partner with payload:', partnerPayload);
+    //         const partnerResponse = await createPartner(partnerPayload);
+    //         console.log("Partner created:", partnerResponse);
+    //
+    //         // Extract partnerId - handle both possible field names
+    //         const idPartner = partnerResponse?.idPartner || partnerResponse?.id;
+    //
+    //         if (!idPartner) {
+    //             console.error('Partner response:', partnerResponse);
+    //             throw new Error("Partner ID missing in createPartner response");
+    //         }
+    //
+    //         console.log('Partner ID received:', idPartner);
+    //
+    //         // 3. Second call: add partner details
+    //         const detailsPayload = {
+    //             partnerId: idPartner,
+    //             doctype: "nid",
+    //             phonenumber: personalInfoData.phone,
+    //             email: personalInfoData.email,
+    //             firstName: personalInfoData.firstName,
+    //             lastName: personalInfoData.lastName,
+    //             dob: "1995-01-01",
+    //             address1: otherInfoData.address1,
+    //             address2: otherInfoData.address2,
+    //             address3: otherInfoData.address3,
+    //             address4: otherInfoData.address4,
+    //             gender: "Male",
+    //             countryCode: otherInfoData.country,
+    //             docSerialNumber: otherInfoData.nidNumber,
+    //             docexpirydate: otherInfoData.taxReturnDate,
+    //
+    //             // Files
+    //             tradeliscense: otherInfoData.tradeLicenseFile ?? undefined,
+    //             tincertificate: otherInfoData.tinFile ?? undefined,
+    //             identityCardFrontSide: otherInfoData.identityCardFrontSide ?? undefined,
+    //             identityCardBackSide: otherInfoData.identityCardBackSide ?? undefined,
+    //             bincertificate: otherInfoData.bincertificate ?? undefined,
+    //             taxReturnFile: otherInfoData.taxReturnFile ?? undefined,
+    //             btrcFile: otherInfoData.btrcFile ?? undefined,
+    //             jointStockFile: otherInfoData.jointStockFile ?? undefined,
+    //             photoFile: otherInfoData.photoFile ?? undefined,
+    //             slaFile: otherInfoData.slaFile ?? undefined,
+    //         };
+    //
+    //         console.log('Adding partner details with payload:', detailsPayload);
+    //         const detailsResponse = await addPartnerDetails(detailsPayload);
+    //         console.log("Partner details added:", detailsResponse);
+    //
+    //         // Auto-login after successful registration
+    //         try {
+    //             const loginResponse = await loginUser({
+    //                 email: personalInfoData.email,
+    //                 password: personalInfoData.password
+    //             });
+    //
+    //             setAuthToken(loginResponse.token);
+    //             toast.success("Registration completed successfully! You are now logged in.");
+    //             router.push('/dashboard');
+    //         } catch (loginError) {
+    //             console.error('Auto login failed:', loginError);
+    //             // Still show success message but redirect to login page
+    //             toast.success("Registration completed successfully! Please login with your credentials.");
+    //             router.push('/login');
+    //         }
+    //
+    //     } catch (error) {
+    //         console.error("Registration failed:", error);
+    //
+    //         // Provide more specific error messages
+    //         if (error instanceof Error) {
+    //             toast.error(error.message);
+    //         } else {
+    //             toast.error("Registration failed. Please try again.");
+    //         }
+    //     } finally {
+    //         setIsSubmitting(false);
+    //     }
+    // };
     const handleOtherInfoSubmit: SubmitHandler<OtherInfo> = async (data) => {
         console.log("Other info submitted:", data);
         setIsSubmitting(true);
 
         try {
-            // 1. Gather both form data
             const personalInfoData = personalInfoForm.getValues();
             const otherInfoData = otherInfoForm.getValues();
 
             console.log('Personal Info Data:', personalInfoData);
             console.log('Other Info Data:', otherInfoData);
 
-            // 2. First call: create partner
+            // STEP 1: Register user in authentication system FIRST
+            console.log('Step 1: Registering user in auth system...');
+            let authToken = '';
+
+            try {
+                const authResponse = await registerUser({
+                    email: personalInfoData.email,
+                    password: personalInfoData.password,
+                    firstName: personalInfoData.firstName,
+                    lastName: personalInfoData.lastName,
+                    phone: personalInfoData.phone
+                });
+
+                authToken = authResponse.token;
+                console.log('User registered successfully in auth system');
+                setAuthToken(authToken);
+                toast.success('Account created successfully!');
+            } catch (authError: any) {
+                console.error('Auth registration failed:', authError);
+
+                // Check if user already exists
+                if (authError.message?.includes('already exists')) {
+                    toast.error('An account with this email already exists. Please login instead.');
+                    // Redirect to login after 2 seconds
+                    setTimeout(() => {
+                        router.push(`/${locale}/login`);
+                    }, 2000);
+                    setIsSubmitting(false);
+                    return;
+                } else if (authError.response?.status === 404) {
+                    // If registration endpoint doesn't exist, continue without it
+                    console.warn('Registration endpoint not found. Continuing with partner creation...');
+                    // toast.warning('Creating your profile...');
+                } else {
+                    toast.error(authError.message || 'Failed to create user account. Please try again.');
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // STEP 2: Create partner
+            console.log('Step 2: Creating partner...');
+            toast.loading('Creating partner profile...', { id: 'partner-creation' });
+
             const partnerPayload = {
                 partnerName: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
                 telephone: personalInfoData.phone,
@@ -1305,13 +1463,11 @@ export default function RegisterPage() {
                 callSrcId: 2,
             };
 
-            console.log('Creating partner with payload:', partnerPayload);
             const partnerResponse = await createPartner(partnerPayload);
             console.log("Partner created:", partnerResponse);
+            toast.success('Partner profile created!', { id: 'partner-creation' });
 
-            // Extract partnerId - handle both possible field names
             const idPartner = partnerResponse?.idPartner || partnerResponse?.id;
-
             if (!idPartner) {
                 console.error('Partner response:', partnerResponse);
                 throw new Error("Partner ID missing in createPartner response");
@@ -1319,7 +1475,10 @@ export default function RegisterPage() {
 
             console.log('Partner ID received:', idPartner);
 
-            // 3. Second call: add partner details
+            // STEP 3: Add partner details
+            console.log('Step 3: Adding partner details...');
+            toast.loading('Uploading documents...', { id: 'partner-details' });
+
             const detailsPayload = {
                 partnerId: idPartner,
                 doctype: "nid",
@@ -1336,8 +1495,6 @@ export default function RegisterPage() {
                 countryCode: otherInfoData.country,
                 docSerialNumber: otherInfoData.nidNumber,
                 docexpirydate: otherInfoData.taxReturnDate,
-
-                // Files
                 tradeliscense: otherInfoData.tradeLicenseFile ?? undefined,
                 tincertificate: otherInfoData.tinFile ?? undefined,
                 identityCardFrontSide: otherInfoData.identityCardFrontSide ?? undefined,
@@ -1350,33 +1507,32 @@ export default function RegisterPage() {
                 slaFile: otherInfoData.slaFile ?? undefined,
             };
 
-            console.log('Adding partner details with payload:', detailsPayload);
             const detailsResponse = await addPartnerDetails(detailsPayload);
             console.log("Partner details added:", detailsResponse);
+            toast.success('Documents uploaded successfully!', { id: 'partner-details' });
 
-            // Auto-login after successful registration
-            try {
-                const loginResponse = await loginUser({
-                    email: personalInfoData.email,
-                    password: personalInfoData.password
-                });
+            // STEP 4: Success! Show message and redirect
+            toast.success("Registration completed successfully! You are now logged in.");
 
-                setAuthToken(loginResponse.token);
-                toast.success("Registration completed successfully! You are now logged in.");
-                router.push('/dashboard');
-            } catch (loginError) {
-                console.error('Auto login failed:', loginError);
-                // Still show success message but redirect to login page
-                toast.success("Registration completed successfully! Please login with your credentials.");
-                router.push('/login');
-            }
+            // Redirect to dashboard with locale
+            console.log(`Redirecting to: /${locale}/dashboard`);
 
-        } catch (error) {
+            // Small delay to show success message
+            setTimeout(() => {
+                router.push(`/${locale}/dashboard`);
+            }, 1500);
+
+        } catch (error: any) {
             console.error("Registration failed:", error);
 
-            // Provide more specific error messages
+            // Dismiss any loading toasts
+            toast.dismiss('partner-creation');
+            toast.dismiss('partner-details');
+
             if (error instanceof Error) {
                 toast.error(error.message);
+            } else if (error.response?.data?.message) {
+                toast.error(error.response.data.message);
             } else {
                 toast.error("Registration failed. Please try again.");
             }
@@ -1384,7 +1540,6 @@ export default function RegisterPage() {
             setIsSubmitting(false);
         }
     };
-
     return (
         <div className="min-h-screen bg-gray-50">
             <Header/>

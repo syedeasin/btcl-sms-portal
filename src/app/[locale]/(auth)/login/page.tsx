@@ -178,7 +178,6 @@ export default function LoginPage() { // Remove params from function signature
 
       // Store the authentication token
       setAuthToken(response.token)
-      console.log('Login successful, redirecting to:', `/${locale}/dashboard`)
 
       // Redirect to dashboard
       router.push(`/${locale}/dashboard`)
@@ -233,7 +232,7 @@ export default function LoginPage() { // Remove params from function signature
 
                   <div className="text-sm text-center">
                     <Link
-                        href={`/${locale}/register`}
+                        href="/register"
                         className="text-blue-600 hover:underline"
                     >
                       Don't have an account? Register here

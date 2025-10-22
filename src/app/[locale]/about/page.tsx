@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 import { Header } from '@/components/layout/Header'
@@ -46,9 +46,9 @@ interface Leader {
 }
 
 interface AboutPageProps {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 // Constants
@@ -253,8 +253,9 @@ const useAboutPageData = (locale: string) => {
 }
 
 // Main Component
-export default function AboutPage({ params: { locale } }: AboutPageProps) {
-  const t = useTranslations()
+export default async function AboutPage({ params }: AboutPageProps) {
+  const { locale } = await params
+  const t = await getTranslations()
   const { milestones, stats, awards, leaders } = useAboutPageData(locale)
 
   return (

@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 import { Header } from '@/components/layout/Header'
@@ -32,9 +32,9 @@ interface FAQ {
 }
 
 interface ContactPageProps {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 // Constants
@@ -192,8 +192,9 @@ const useContactData = (locale: string) => {
 }
 
 // Main Component
-export default function ContactPage({ params: { locale } }: ContactPageProps) {
-  const t = useTranslations()
+export default async function ContactPage({ params }: ContactPageProps) {
+  const { locale } = await params
+  const t = await getTranslations()
   const { offices, supportChannels, faqs } = useContactData(locale)
 
   return (

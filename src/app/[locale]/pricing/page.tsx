@@ -1,4 +1,3 @@
-'use client';
 import React from 'react';
 import {Footer} from "@/components/layout/Footer";
 import {Header} from "@/components/layout/Header";
@@ -6,7 +5,8 @@ import {Button} from "@/components/ui/Button";
 import Link from "next/link";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/Card";
 
-const PricingPage = ({ params: { locale } }: { params: { locale: string } }) => {
+const PricingPage = async ({ params }: { params: Promise<{ locale: string }> }) => {
+  const { locale } = await params
   // const packages = [
   //   {
   //     id: 'small',

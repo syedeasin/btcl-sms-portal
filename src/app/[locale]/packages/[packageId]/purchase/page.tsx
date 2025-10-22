@@ -58,10 +58,13 @@ interface Package {
 
 
 export default function PurchasePage({
-  params: { locale, packageId }
+  params
 }: {
-  params: { locale: string; packageId: string }
+  params: Promise<{ locale: string; packageId: string }>
 }) {
+  // For client components in Next.js 15, params are passed as-is at runtime
+  // but typed as Promise for consistency
+  const { locale, packageId } = params as unknown as { locale: string; packageId: string }
   const t = useTranslations()
   // const { data: session, status } = useSession()
   const router = useRouter()

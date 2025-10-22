@@ -1,12 +1,13 @@
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import Link from 'next/link'
 
-export default function PackagesPage({ params: { locale } }: { params: { locale: string } }) {
-  const t = useTranslations()
+export default async function PackagesPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const t = await getTranslations()
 
   // This would typically come from a database
   const packages = [

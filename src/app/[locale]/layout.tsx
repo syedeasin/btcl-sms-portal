@@ -1,53 +1,36 @@
-// import {NextIntlClientProvider} from 'next-intl';
-// import {getMessages} from 'next-intl/server';
-// import {Inter} from 'next/font/google';
-// import '../globals.css';
-//
-// const inter = Inter({ subsets: ['latin'] });
-//
-// export default async function LocaleLayout({
-//   children,
-//   params: {locale}
-// }: {
-//   children: React.ReactNode;
-//   params: {locale: string};
-// }) {
-//   const messages = await getMessages();
-//
-//   return (
-//     <html lang={locale} dir={locale === 'bn' ? 'ltr' : 'ltr'}>
-//       <body className={inter.className}>
-//         <NextIntlClientProvider messages={messages}>
-//           {children}
-//         </NextIntlClientProvider>
-//       </body>
-//     </html>
-//   );
-// }
-
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages} from 'next-intl/server';
 import {Inter} from 'next/font/google';
-import '../globals.css';
+import { SessionProvider } from '@/components/providers/SessionProvider';
+import ToastProvider from '@/components/toastProvider/ToastProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export default async function LocaleLayout({
                                              children,
-                                             params: {locale}
+                                             params
                                            }: {
   children: React.ReactNode;
-  params: {locale: string};
+  params: Promise<{locale: string}>;
 }) {
+  const {locale} = await params;
   const messages = await getMessages();
 
   return (
-      <div data-locale={locale} dir={locale === 'bn' ? 'rtl' : 'ltr'}>
-        <NextIntlClientProvider messages={messages}>
-          <main className={inter.className}>
-            {children}
-          </main>
-        </NextIntlClientProvider>
-      </div>
+      <html lang={locale} dir={locale === 'bn' ? 'rtl' : 'ltr'} suppressHydrationWarning>
+        <head>
+          <title>BTCL SMS</title>
+          <meta name="description" content="BTCL SMS Management System" />
+          <link rel="icon" href="/fabicon.png" />
+        </head>
+        <body className={inter.className} suppressHydrationWarning>
+          <SessionProvider>
+            <NextIntlClientProvider messages={messages}>
+              {children}
+              <ToastProvider />
+            </NextIntlClientProvider>
+          </SessionProvider>
+        </body>
+      </html>
   );
 }

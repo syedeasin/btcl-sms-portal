@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 import { Header } from '@/components/layout/Header'
@@ -32,9 +32,9 @@ interface TechnicalSpec {
 }
 
 interface ServicesPageProps {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 // Constants
@@ -216,8 +216,9 @@ const useServicesData = (locale: string) => {
 }
 
 // Main Component
-export default function ServicesPage({ params: { locale } }: ServicesPageProps) {
-  const t = useTranslations()
+export default async function ServicesPage({ params }: ServicesPageProps) {
+  const { locale } = await params
+  const t = await getTranslations()
   const { services, apiFeatures, industries, technicalSpecs } = useServicesData(locale)
 
   return (

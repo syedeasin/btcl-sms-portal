@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
@@ -23,9 +23,9 @@ interface PricingPlan {
 }
 
 interface HomePageProps {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 // Constants
@@ -41,8 +41,9 @@ const TESTIMONIALS = [
   { name: 'City Hospital', industry: 'Healthcare', initial: 'C' },
 ] as const
 
-export default function HomePage({ params: { locale } }: HomePageProps) {
-  const t = useTranslations()
+export default async function HomePage({ params }: HomePageProps) {
+  const { locale } = await params
+  const t = await getTranslations()
 
   // Feature data
   const features: Feature[] = [

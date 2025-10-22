@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,26 +10,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(new URL('/payment/failed', request.url))
     }
 
-    // Find and update the order
-    const order = await prisma.order.findFirst({
-      where: { sslcommerzTranId: tranId }
-    })
+    // TODO: Implement Prisma database integration
+    // const order = await prisma.order.findFirst({ where: { sslcommerzTranId: tranId } })
 
-    if (order) {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'CANCELLED',
-          paymentData: {
-            ...(order.paymentData as any),
-            failedReason,
-            failedAt: new Date().toISOString()
-          }
-        }
-      })
-    }
-
-    return NextResponse.redirect(new URL(`/payment/failed?order=${order?.id}&reason=${encodeURIComponent(failedReason || 'Payment failed')}`, request.url))
+    return NextResponse.redirect(new URL(`/payment/failed?reason=${encodeURIComponent(failedReason || 'Payment failed')}`, request.url))
 
   } catch (error) {
     console.error('Payment fail handler error:', error)

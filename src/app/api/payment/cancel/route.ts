@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,26 +9,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(new URL('/payment/cancelled', request.url))
     }
 
-    // Find and update the order
-    const order = await prisma.order.findFirst({
-      where: { sslcommerzTranId: tranId }
-    })
+    // TODO: Implement Prisma database integration
+    // const order = await prisma.order.findFirst({ where: { sslcommerzTranId: tranId } })
 
-    if (order) {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'CANCELLED',
-          paymentData: {
-            ...(order.paymentData as any),
-            cancelledAt: new Date().toISOString(),
-            cancelledBy: 'user'
-          }
-        }
-      })
-    }
-
-    return NextResponse.redirect(new URL(`/payment/cancelled?order=${order?.id}`, request.url))
+    return NextResponse.redirect(new URL(`/payment/cancelled`, request.url))
 
   } catch (error) {
     console.error('Payment cancel handler error:', error)

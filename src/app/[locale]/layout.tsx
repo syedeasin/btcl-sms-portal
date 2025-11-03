@@ -3,6 +3,7 @@ import {getMessages} from 'next-intl/server';
 import {Inter} from 'next/font/google';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import ToastProvider from '@/components/toastProvider/ToastProvider';
+import {AuthProvider} from "@/lib/contexts/AuthContext";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,12 +25,14 @@ export default async function LocaleLayout({
           <link rel="icon" href="/fabicon.png" />
         </head>
         <body className={inter.className} suppressHydrationWarning>
-          <SessionProvider>
-            <NextIntlClientProvider messages={messages}>
-              {children}
-              <ToastProvider />
-            </NextIntlClientProvider>
-          </SessionProvider>
+        <AuthProvider>
+            <SessionProvider>
+                <NextIntlClientProvider messages={messages}>
+                    {children}
+                    <ToastProvider />
+                </NextIntlClientProvider>
+            </SessionProvider>
+        </AuthProvider>
         </body>
       </html>
   );

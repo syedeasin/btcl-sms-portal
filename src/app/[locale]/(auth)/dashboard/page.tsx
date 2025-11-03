@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRouter, useParams } from 'next/navigation' // Add useParams import
+import { useRouter, useParams } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
 import { getAuthToken, removeAuthToken } from '@/lib/api-client/auth'
+import { Eye, EyeOff, Copy, Check } from 'lucide-react' // ✅ Add icon imports
 
 interface DashboardData {
   user: {
@@ -17,6 +18,7 @@ interface DashboardData {
     phone: string
     company: string
     verificationStatus: string
+    password?: string // ✅ Add password field
   }
   statistics: {
     totalSMS: number
@@ -45,6 +47,10 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  // ✅ Add state for password visibility and copy status
+  const [showPassword, setShowPassword] = useState(false)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
   useEffect(() => {
     // Check if user is authenticated
     const token = getAuthToken()
@@ -61,29 +67,35 @@ export default function DashboardPage() {
     router.push(`/${locale}/login`)
   }
 
+  // ✅ Add copy to clipboard function
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
   const fetchDashboardData = async () => {
     try {
-      // This would be a real API call using the auth token
-      // For now, we'll use mock data
       const token = getAuthToken()
 
-      // In a real implementation, you would use the token to fetch user data
-      // Example:
-      // const response = await fetch('/api/dashboard', {
-      //   headers: {
-      //     'Authorization': `Bearer ${token}`
-      //   }
-      // });
-      // const data = await response.json();
+      // ✅ In a real implementation, decode the JWT token to get user data
+      // For now, get from localStorage if stored during login/registration
+      const userEmail = localStorage.getItem('userEmail') || 'john@example.com'
+      const userPassword = localStorage.getItem('userPassword') || '********'
 
       // Mock data for demonstration
       const mockData: DashboardData = {
         user: {
-          name: 'John Doe', // You would get this from your API
-          email: 'john@example.com', // You would get this from your API
+          name: 'John Doe',
+          email: userEmail, // ✅ Use stored email
           phone: '+880 1712345678',
           company: 'Example Company Ltd',
-          verificationStatus: 'APPROVED'
+          verificationStatus: 'APPROVED',
+          password: userPassword // ✅ Use stored password
         },
         statistics: {
           totalSMS: 15000,
@@ -171,6 +183,8 @@ export default function DashboardPage() {
     })
   }
 
+  const apiUrl = 'https://a2psms.btcliptelephony.gov.bd/en'
+
   return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -181,7 +195,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {locale === 'en' ? `Welcome, ${dashboardData.user.name}!` : `স্বাগতম, ${dashboardData.user.name}!`}
+                  {locale === 'en' ? `Welcome` : `স্বাগতম`}
                 </h1>
                 <p className="text-gray-600">
                   {locale === 'en' ? 'Here\'s an overview of your SMS account' : 'এখানে আপনার এসএমএস অ্যাকাউন্টের একটি সংক্ষিপ্ত বিবরণ রয়েছে'}
@@ -220,149 +234,117 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>{locale === 'en' ? 'Total SMS' : 'মোট এসএমএস'}</CardDescription>
-                  <CardTitle className="text-3xl font-bold text-btcl-primary">
-                    {dashboardData.statistics.totalSMS.toLocaleString()}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    {locale === 'en' ? 'Across all packages' : 'সব প্যাকেজ মিলিয়ে'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>{locale === 'en' ? 'Used SMS' : 'ব্যবহৃত এসএমএস'}</CardDescription>
-                  <CardTitle className="text-3xl font-bold text-orange-600">
-                    {dashboardData.statistics.usedSMS.toLocaleString()}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    {((dashboardData.statistics.usedSMS / dashboardData.statistics.totalSMS) * 100).toFixed(1)}% {locale === 'en' ? 'of total' : 'মোট'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>{locale === 'en' ? 'Remaining SMS' : 'অবশিষ্ট এসএমএস'}</CardDescription>
-                  <CardTitle className="text-3xl font-bold text-green-600">
-                    {dashboardData.statistics.remainingSMS.toLocaleString()}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    {((dashboardData.statistics.remainingSMS / dashboardData.statistics.totalSMS) * 100).toFixed(1)}% {locale === 'en' ? 'remaining' : 'অবশিষ্ট'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>{locale === 'en' ? 'Active Packages' : 'সক্রিয় প্যাকেজ'}</CardDescription>
-                  <CardTitle className="text-3xl font-bold text-btcl-primary">
-                    {dashboardData.statistics.activePackages}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    {dashboardData.statistics.totalPackages} {locale === 'en' ? 'total packages' : 'মোট প্যাকেজ'}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Recent Orders */}
+            {/* ✅ Account Details Card */}
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>{locale === 'en' ? 'Recent Orders' : 'সাম্প্রতিক অর্ডার'}</CardTitle>
+                  <CardTitle>
+                    {locale === 'en' ? 'Account Details' : 'অ্যাকাউন্টের বিবরণ'}
+                  </CardTitle>
                   <CardDescription>
-                    {locale === 'en' ? 'Your latest package purchases' : 'আপনার সর্বশেষ প্যাকেজ ক্রয়'}
+                    {locale === 'en' ? 'Your API credentials and access information' : 'আপনার API শংসাপত্র এবং অ্যাক্সেস তথ্য'}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {dashboardData.recentOrders.map((order) => (
-                        <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-semibold">{order.packageName}</h4>
-                            <p className="text-sm text-gray-600">
-                              {formatDate(order.createdAt)}
-                              {order.expiresAt && ` • ${locale === 'en' ? 'Expires' : 'মেয়াদ শেষ'} ${formatDate(order.expiresAt)}`}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold">৳{order.amount.toLocaleString()}</div>
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status}
+                <CardContent className="space-y-6">
+                  {/* API URL */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {locale === 'en' ? 'API URL' : 'এপিআই ইউআরএল'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 break-all">
+                        {apiUrl}
+                      </div>
+                      <button
+                          onClick={() => copyToClipboard(apiUrl, 'url')}
+                          className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                          title={locale === 'en' ? 'Copy to clipboard' : 'ক্লিপবোর্ডে কপি করুন'}
+                      >
+                        {copiedField === 'url' ? (
+                            <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                            <Copy className="w-5 h-5 text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {locale === 'en' ? 'Username (Email)' : 'ইউজারনেম (ইমেইল)'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm text-gray-900">
+                        {dashboardData.user.email}
+                      </div>
+                      <button
+                          onClick={() => copyToClipboard(dashboardData.user.email, 'email')}
+                          className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                          title={locale === 'en' ? 'Copy to clipboard' : 'ক্লিপবোর্ডে কপি করুন'}
+                      >
+                        {copiedField === 'email' ? (
+                            <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                            <Copy className="w-5 h-5 text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {locale === 'en' ? 'Password' : 'পাসওয়ার্ড'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 flex items-center">
+                        <span className="flex-1">
+                          {showPassword ? dashboardData.user.password : '••••••••••••'}
                         </span>
-                          </div>
-                        </div>
-                    ))}
+                      </div>
+                      <button
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                          title={showPassword ? (locale === 'en' ? 'Hide password' : 'পাসওয়ার্ড লুকান') : (locale === 'en' ? 'Show password' : 'পাসওয়ার্ড দেখান')}
+                      >
+                        {showPassword ? (
+                            <EyeOff className="w-5 h-5 text-gray-600" />
+                        ) : (
+                            <Eye className="w-5 h-5 text-gray-600" />
+                        )}
+                      </button>
+                      <button
+                          onClick={() => copyToClipboard(dashboardData.user.password || '', 'password')}
+                          className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                          title={locale === 'en' ? 'Copy to clipboard' : 'ক্লিপবোর্ডে কপি করুন'}
+                      >
+                        {copiedField === 'password' ? (
+                            <Check className="w-5 h-5 text-green-600" />
+                        ) : (
+                            <Copy className="w-5 h-5 text-gray-600" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <Link href={`/${locale}/dashboard/orders`}>
-                      <Button variant="outline" className="w-full">
-                        {locale === 'en' ? 'View All Orders' : 'সব অর্ডার দেখুন'}
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
 
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{locale === 'en' ? 'Quick Actions' : 'দ্রুত ক্রিয়া'}</CardTitle>
-                  <CardDescription>
-                    {locale === 'en' ? 'Common tasks and shortcuts' : 'সাধারণ কাজ এবং শর্টকাট'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-4">
-                    <Link href={`/${locale}/packages`}>
-                      <Button className="w-full justify-start" variant="outline">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  {/* Security Notice */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
-                        {locale === 'en' ? 'Buy SMS Package' : 'এসএমএস প্যাকেজ কিনুন'}
-                      </Button>
-                    </Link>
-
-                    <Link href={`/${locale}/dashboard/api`}>
-                      <Button className="w-full justify-start" variant="outline">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                        {locale === 'en' ? 'API Documentation' : 'API ডকুমেন্টেশন'}
-                      </Button>
-                    </Link>
-
-                    <Link href={`/${locale}/dashboard/reports`}>
-                      <Button className="w-full justify-start" variant="outline">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        {locale === 'en' ? 'View Reports' : 'রিপোর্ট দেখুন'}
-                      </Button>
-                    </Link>
-
-                    <Link href={`/${locale}/dashboard/profile`}>
-                      <Button className="w-full justify-start" variant="outline">
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        {locale === 'en' ? 'Edit Profile' : 'প্রোফাইল সম্পাদনা'}
-                      </Button>
-                    </Link>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-blue-700">
+                          {locale === 'en'
+                              ? 'Keep your credentials secure. Never share your password with anyone.'
+                              : 'আপনার শংসাপত্র সুরক্ষিত রাখুন। কখনও কারো সাথে আপনার পাসওয়ার্ড শেয়ার করবেন না।'
+                          }
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -6,6 +6,7 @@ import { createPartner, addPartnerDetails, sendOtp, verifyOtp } from '@/lib/api-
 import {useRouter} from "next/navigation";
 import toast from "react-hot-toast";
 import { loginUser, setAuthToken } from '@/lib/api-client/auth'
+import {useAuth} from "@/lib/contexts/AuthContext";
 
 // Country list with codes
 const countries = [
@@ -63,7 +64,7 @@ export default function RegisterPage() {
     const [verifiedPhone, setVerifiedPhone] = useState('')
     const intervalRef = useRef<number | null>(null)
     const router = useRouter();
-
+    const { checkAuth } = useAuth() // ✅ Add this line
     // Form hooks for each step
     const verificationForm = useForm<VerificationInfo>({
         mode: 'onBlur'
@@ -213,7 +214,7 @@ export default function RegisterPage() {
 
     // In your RegisterPage component, update the handleOtherInfoSubmit function:
     const handleOtherInfoSubmit: SubmitHandler<OtherInfo> = async (data) => {
-        console.log("Other info submitted:", data);
+
         setIsSubmitting(true);
 
         try {
@@ -221,14 +222,14 @@ export default function RegisterPage() {
             const personalInfoData = personalInfoForm.getValues();
             const otherInfoData = otherInfoForm.getValues();
 
-            console.log('Personal Info Data:', personalInfoData);
-            console.log('Other Info Data:', otherInfoData);
+
 
             // 2. First call: create partner
             const partnerPayload = {
                 partnerName: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
                 telephone: personalInfoData.phone,
                 email: personalInfoData.email,
+                userPassword: personalInfoData.password,
                 address1: otherInfoData.address1,
                 address2: otherInfoData.address2 || "",
                 city: otherInfoData.city,
@@ -246,7 +247,7 @@ export default function RegisterPage() {
             };
 
             console.log('Creating partner with payload:', partnerPayload);
-            const partnerResponse = await createPartner(partnerPayload);
+            const partnerResponse = await createPartner(        partnerPayload);
             console.log("Partner created:", partnerResponse);
 
             // Extract partnerId - handle both possible field names
@@ -299,6 +300,9 @@ export default function RegisterPage() {
                 });
 
                 setAuthToken(loginResponse.token);
+                localStorage.setItem('userEmail', personalInfoData.email)
+                localStorage.setItem('userPassword', personalInfoData.password)
+                checkAuth()
                 toast.success("Registration completed successfully! You are now logged in.");
                 router.push('/dashboard');
             } catch (loginError) {

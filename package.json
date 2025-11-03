@@ -20,6 +20,7 @@
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "country-list": "^2.4.1",
+    "lucide-react": "^0.552.0",
     "next": "^15.5.2",
     "next-auth": "^4.24.7",
     "next-intl": "^3.17.2",

@@ -8,7 +8,7 @@ const OTP_BASE_URL = "https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST";
 // const BASE_URL = 'http://103.95.96.76:8001/FREESWITCHREST/partner/create-partner';
 // const BASE_URL2 = "http://103.95.96.76:8001/FREESWITCHREST/partner/partner-documents";
 // const OTP_BASE_URL = "http://103.95.96.76:8001/FREESWITCHREST";
- const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjYsIm5hbWUiOiJST0xFX1NNU0FETUlOIiwiZGVzY3JpcHRpb24iOiJzbXNBZG1pbiJ9XSwiaWRQYXJ0bmVyIjoxLCJzdWIiOiJzbXNhZG1pbi5jb20iLCJpYXQiOjE3NjIwOTAyODYsImV4cCI6MTc2MjE3NjY4Nn0.sV6TUWOMvJdDlUlX5rXRlkwBUmWOocEpunlwqB64pdo";
+ const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjYsIm5hbWUiOiJST0xFX1NNU0FETUlOIiwiZGVzY3JpcHRpb24iOiJzbXNBZG1pbiJ9XSwiaWRQYXJ0bmVyIjoxLCJzdWIiOiJzbXNhZG1pbi5jb20iLCJpYXQiOjE3NjIyNDAwNzYsImV4cCI6MTc2MjMyNjQ3Nn0.9K5yVLNy6ub6OxJT7kXzZlLoHbs9_BQHzMsKB12xHxs";
 
 // OTP API functions
 export const sendOtp = async (phoneNumber: string): Promise<{ message: string }> => {

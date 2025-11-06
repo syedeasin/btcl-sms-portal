@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useForm, Controller, SubmitHandler } from 'react-hook-form'
 import { Header } from "@/components/layout/Header"
-import { createPartner, addPartnerDetails, sendOtp, verifyOtp } from '@/lib/api-client/partner'
+import { createPartner, addPartnerDetails, sendOtp, verifyOtp, loginPartner } from '@/lib/api-client/partner'
 import {useRouter} from "next/navigation";
 import toast from "react-hot-toast";
 import { loginUser, setAuthToken } from '@/lib/api-client/auth'
@@ -64,7 +64,8 @@ export default function RegisterPage() {
     const [verifiedPhone, setVerifiedPhone] = useState('')
     const intervalRef = useRef<number | null>(null)
     const router = useRouter();
-    const { checkAuth } = useAuth() // ✅ Add this line
+    const { checkAuth } = useAuth()
+
     // Form hooks for each step
     const verificationForm = useForm<VerificationInfo>({
         mode: 'onBlur'
@@ -171,9 +172,10 @@ export default function RegisterPage() {
             console.log('OTP sent:', response)
             setOtpSent(true)
             startTimer(300)
+            toast.success('OTP sent successfully!')
         } catch (error) {
             console.error('Failed to send OTP:', error)
-            alert('Failed to send OTP. Please try again.')
+            toast.error('Failed to send OTP. Please try again.')
         } finally {
             setIsSubmitting(false)
         }
@@ -186,10 +188,11 @@ export default function RegisterPage() {
             const response = await verifyOtp(phone, otp)
             console.log('OTP verified:', response)
             setVerifiedPhone(phone)
+            toast.success('Phone number verified successfully!')
             setStep(2) // Move to personal info step
         } catch (error) {
             console.error('Failed to verify OTP:', error)
-            alert('Invalid OTP. Please try again.')
+            toast.error('Invalid OTP. Please try again.')
         } finally {
             setIsSubmitting(false)
         }
@@ -201,9 +204,10 @@ export default function RegisterPage() {
             const response = await sendOtp(phone)
             console.log('OTP resent:', response)
             startTimer(300)
+            toast.success('OTP resent successfully!')
         } catch (error) {
             console.error('Failed to resend OTP:', error)
-            alert('Failed to resend OTP. Please try again.')
+            toast.error('Failed to resend OTP. Please try again.')
         }
     }
 
@@ -212,19 +216,25 @@ export default function RegisterPage() {
         setStep(3)
     }
 
-    // In your RegisterPage component, update the handleOtherInfoSubmit function:
+    // Updated registration flow
     const handleOtherInfoSubmit: SubmitHandler<OtherInfo> = async (data) => {
-
         setIsSubmitting(true);
 
         try {
+            console.log('🚀 Starting registration process...');
+
             // 1. Gather both form data
             const personalInfoData = personalInfoForm.getValues();
             const otherInfoData = otherInfoForm.getValues();
 
+            console.log('📋 Form data gathered:', {
+                email: personalInfoData.email,
+                phone: personalInfoData.phone,
+                name: `${personalInfoData.firstName} ${personalInfoData.lastName}`
+            });
 
-
-            // 2. First call: create partner
+            // 2. First call: create partner (NO TOKEN REQUIRED)
+            console.log('\n🔵 STEP 2: Creating partner account...');
             const partnerPayload = {
                 partnerName: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
                 telephone: personalInfoData.phone,
@@ -246,19 +256,46 @@ export default function RegisterPage() {
                 callSrcId: 2,
             };
 
-            console.log('Creating partner with payload:', partnerPayload);
-            const partnerResponse = await createPartner(        partnerPayload);
-            console.log("Partner created:", partnerResponse);
+            const partnerResponse = await createPartner(partnerPayload);
 
-            // Extract partnerId - handle both possible field names
+            // Extract partnerId
             const idPartner = partnerResponse?.idPartner || partnerResponse?.id;
             if (!idPartner) {
-                console.error('Partner response:', partnerResponse);
+                console.error('❌ Partner response:', partnerResponse);
                 throw new Error("Partner ID missing in createPartner response");
             }
-            console.log('Partner ID received:', idPartner);
+            console.log('✅ Partner created with ID:', idPartner);
 
-            // 3. Second call: add partner details
+            // 3. Second call: login to get JWT token
+            console.log('\n🔵 STEP 3: Logging in to get JWT token...');
+            console.log('Login credentials:', {
+                email: personalInfoData.email,
+                passwordLength: personalInfoData.password.length
+            });
+
+            const loginResponse = await loginPartner(
+                personalInfoData.email,
+                personalInfoData.password
+            );
+
+            const jwtToken = loginResponse.token;
+            if (!jwtToken) {
+                console.error('❌ Login response:', loginResponse);
+                throw new Error("JWT token missing in login response");
+            }
+            console.log('✅ JWT token received:', jwtToken.substring(0, 50) + '...');
+            console.log('📋 Token payload:', {
+                roles: loginResponse.authRoles,
+                partnerId: loginResponse.idPartner || 'N/A',
+                sessionStart: loginResponse.sessionStartDateTime
+            });
+
+            // Small delay to ensure token is propagated
+            console.log('⏳ Waiting 2 seconds for token to be active...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 4. Third call: add partner details (WITH TOKEN)
+            console.log('\n🔵 STEP 4: Adding partner documents with JWT token...');
             const detailsPayload = {
                 partnerId: idPartner,
                 doctype: "nid",
@@ -288,32 +325,34 @@ export default function RegisterPage() {
                 slaFile: otherInfoData.slaFile ?? undefined,
             };
 
-            console.log('Adding partner details with payload:', detailsPayload);
-            const detailsResponse = await addPartnerDetails(detailsPayload);
-            console.log("Partner details added:", detailsResponse);
+            console.log('Calling addPartnerDetails with token...');
+            const detailsResponse = await addPartnerDetails(detailsPayload, jwtToken);
+            console.log('✅ Partner details added successfully:', detailsResponse);
 
-            // Auto-login after successful registration
+            // 5. Auto-login for the main app (if different from partner login)
+            console.log('\n🔵 STEP 5: Auto-login to main app...');
             try {
-                const loginResponse = await loginUser({
+                const appLoginResponse = await loginUser({
                     email: personalInfoData.email,
                     password: personalInfoData.password
                 });
 
-                setAuthToken(loginResponse.token);
-                localStorage.setItem('userEmail', personalInfoData.email)
-                localStorage.setItem('userPassword', personalInfoData.password)
-                checkAuth()
+                setAuthToken(appLoginResponse.token);
+                localStorage.setItem('userEmail', personalInfoData.email);
+                localStorage.setItem('userPassword', personalInfoData.password);
+                checkAuth();
                 toast.success("Registration completed successfully! You are now logged in.");
+                console.log('✅ Registration complete! Redirecting to dashboard...');
                 router.push('/dashboard');
             } catch (loginError) {
-                console.error('Auto login failed:', loginError);
+                console.error('⚠️ Auto login failed:', loginError);
                 // Still show success message but redirect to login page
                 toast.success("Registration completed successfully! Please login with your credentials.");
                 router.push('/login');
             }
 
         } catch (error) {
-            console.error("Registration failed:", error);
+            console.error("❌ Registration failed:", error);
             // Provide more specific error messages
             if (error instanceof Error) {
                 toast.error(error.message);
@@ -449,7 +488,7 @@ export default function RegisterPage() {
                                     type="button"
                                     onClick={handleNext}
                                     disabled={isSubmitting}
-                                    className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full"
+                                    className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full disabled:opacity-50"
                                 >
                                     {isSubmitting ? 'Processing...' : otpSent ? 'Verify OTP' : 'Send OTP'}
                                 </button>
@@ -636,7 +675,7 @@ export default function RegisterPage() {
                         </form>
                     )}
 
-                    {/* STEP 3 - Other Information */}
+                    {/* STEP 3 - Other Information (Same as before, just showing the submit button part) */}
                     {step === 3 && (
                         <form onSubmit={otherInfoForm.handleSubmit(handleOtherInfoSubmit)} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1132,7 +1171,8 @@ export default function RegisterPage() {
                                                 className="mr-2 text-black"
                                             />
                                             <span className="text-black">Check our </span>
-                                            <span className="text-[#00A651] ml-1 cursor-pointer">terms &amp; conditions</span>
+                                            <span
+                                                className="text-[#00A651] ml-1 cursor-pointer">terms &amp; conditions</span>
                                         </label>
                                         {fieldState.error && (
                                             <p className="text-red-500 text-sm mt-1">{fieldState.error.message}</p>

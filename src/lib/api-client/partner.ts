@@ -1,31 +1,24 @@
 // lib/api-client/partner.ts
 import axios from 'axios';
 
-const BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST/partner/create-partner';1
-const BASE_URL2 = "https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST/partner/partner-documents";
-const OTP_BASE_URL = "https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST";
+const BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST';
+const AUTH_BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/AUTHENTICATION';
 
-// const BASE_URL = 'http://103.95.96.76:8001/FREESWITCHREST/partner/create-partner';
-// const BASE_URL2 = "http://103.95.96.76:8001/FREESWITCHREST/partner/partner-documents";
-// const OTP_BASE_URL = "http://103.95.96.76:8001/FREESWITCHREST";
- const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6W3siaWQiOjYsIm5hbWUiOiJST0xFX1NNU0FETUlOIiwiZGVzY3JpcHRpb24iOiJzbXNBZG1pbiJ9XSwiaWRQYXJ0bmVyIjoxLCJzdWIiOiJzbXNhZG1pbi5jb20iLCJpYXQiOjE3NjIyNDAwNzYsImV4cCI6MTc2MjMyNjQ3Nn0.9K5yVLNy6ub6OxJT7kXzZlLoHbs9_BQHzMsKB12xHxs";
-
-// OTP API functions
+// OTP API functions - NO TOKEN REQUIRED
 export const sendOtp = async (phoneNumber: string): Promise<{ message: string }> => {
     try {
+
         const response = await axios.post(
-            `${OTP_BASE_URL}/otp/send`,
+            `${BASE_URL}/otp/send`,
             { id: phoneNumber },
             {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`
+                    'Content-Type': 'application/json'
                 },
             }
         );
         return response.data;
     } catch (error) {
-        console.error('Send OTP API error:', error);
         throw error;
     }
 };
@@ -33,40 +26,38 @@ export const sendOtp = async (phoneNumber: string): Promise<{ message: string }>
 export const verifyOtp = async (phoneNumber: string, otp: string): Promise<{ message: string }> => {
     try {
         const response = await axios.post(
-            `${OTP_BASE_URL}/otp/varify`,
+            `${BASE_URL}/otp/varify`,
             {
                 phoneNumber: phoneNumber.replace('+', ''),
                 otp
             },
             {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`
+                    'Content-Type': 'application/json'
                 },
             }
         );
         return response.data;
     } catch (error) {
-        console.error('Verify OTP API error:', error);
+        console.error('❌ Verify OTP API error:', error);
 
         // Try with different parameter names
         try {
             const response = await axios.post(
-                `${OTP_BASE_URL}/otp/varify`,
+                `${BASE_URL}/otp/varify`,
                 {
                     id: phoneNumber,
                     code: otp
                 },
                 {
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${AUTH_TOKEN}`
+                        'Content-Type': 'application/json'
                     },
                 }
             );
             return response.data;
         } catch (secondError) {
-            console.error('Second attempt Verify OTP API error:', secondError);
+            console.error('❌ Second attempt Verify OTP API error:', secondError);
             throw secondError;
         }
     }
@@ -94,8 +85,8 @@ export interface CreatePartnerPayload {
 }
 
 export interface CreatePartnerResponse {
-    idPartner?: number;  // Changed from 'id' to match actual response
-    id?: number;         // Keep both for compatibility
+    idPartner?: number;
+    id?: number;
     [key: string]: any;
 }
 
@@ -134,29 +125,30 @@ interface AddPartnerDetailsResponse {
     data?: any;
 }
 
+interface LoginResponse {
+    token: string;
+    [key: string]: any;
+}
+
+// Create Partner - NO TOKEN REQUIRED
 export const createPartner = async (payload: CreatePartnerPayload): Promise<CreatePartnerResponse> => {
     try {
-        console.log('Creating partner with payload:', payload);
 
         const response = await axios.post<CreatePartnerResponse>(
-            BASE_URL,
+            `${BASE_URL}/partner/create-partner`,
             payload,
             {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AUTH_TOKEN}`
+                    'Content-Type': 'application/json'
                 },
             }
         );
 
-        console.log('Create Partner Response:', response.data);
 
-        // Handle potential response structure variations
         if (!response.data) {
             throw new Error('No response data received from create partner API');
         }
 
-        // The API might return idPartner or id, handle both cases
         const responseData = {
             ...response.data,
             idPartner: response.data.idPartner || response.data.id,
@@ -166,7 +158,7 @@ export const createPartner = async (payload: CreatePartnerPayload): Promise<Crea
         return responseData;
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            console.error('Create Partner API error:', {
+            console.error('❌ Create Partner API error:', {
                 status: error.response?.status,
                 statusText: error.response?.statusText,
                 data: error.response?.data,
@@ -174,7 +166,6 @@ export const createPartner = async (payload: CreatePartnerPayload): Promise<Crea
                 requestData: payload
             });
 
-            // Provide more specific error messages
             if (error.response?.status === 400) {
                 throw new Error(`Bad Request: ${JSON.stringify(error.response.data) || 'Invalid partner data'}`);
             } else if (error.response?.status === 401) {
@@ -187,11 +178,73 @@ export const createPartner = async (payload: CreatePartnerPayload): Promise<Crea
     }
 };
 
+// Login to get JWT token - FIXED: Using "user" instead of "email"
+export const loginPartner = async (email: string, password: string): Promise<LoginResponse> => {
+    try {
+
+        // CRITICAL FIX: Backend expects "user" not "email"
+        const loginPayload = {
+            email,  // Changed from "email" to "user"
+            password
+        };
+
+
+        const response = await axios.post<LoginResponse>(
+            `${AUTH_BASE_URL}/auth/login`,
+            loginPayload,
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            }
+        );
+
+
+        if (!response.data || !response.data.token) {
+            console.error('❌ No token in response:', response.data);
+            throw new Error('No token received from login API');
+        }
+
+
+        // Validate token format (JWT should have 3 parts separated by dots)
+        const tokenParts = response.data.token.split('.');
+        if (tokenParts.length !== 3) {
+            console.warn('⚠️ Token format may be invalid. Expected 3 parts, got:', tokenParts.length);
+        }
+
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('❌ Partner Login API error:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                url: `${AUTH_BASE_URL}/auth/login`
+            });
+
+            if (error.response?.status === 401) {
+                throw new Error('Invalid credentials for partner login');
+            } else if (error.response?.status === 404) {
+                throw new Error('Login endpoint not found. Please check the API URL.');
+            } else if (error.response?.status === 500) {
+                throw new Error('Server error during login. Please try again later.');
+            }
+        }
+        console.error('❌ Unexpected login error:', error);
+        throw error;
+    }
+};
+
+// CRITICAL: Check if partner documents endpoint should be GET or POST
+// Backend instruction says: "GET /FREESWITCHREST/partner/partner-documents"
+// But you're trying to upload files, which typically requires POST
+
+// Option 1: If backend expects POST to upload documents
 export const addPartnerDetails = async (
-    payload: PartnerDetailsPayload
+    payload: PartnerDetailsPayload,
+    authToken: string
 ): Promise<AddPartnerDetailsResponse> => {
     try {
-        console.log('Adding partner details for partnerId:', payload.partnerId);
 
         const formData = new FormData();
 
@@ -214,6 +267,7 @@ export const addPartnerDetails = async (
             docexpirydate: payload.docexpirydate || ''
         };
 
+
         Object.entries(textFields).forEach(([key, value]) => {
             if (value) formData.append(key, value);
         });
@@ -221,7 +275,6 @@ export const addPartnerDetails = async (
         // Append files with proper field names
         const appendFile = (file: File | undefined, fieldName: string) => {
             if (file) {
-                console.log(`Appending file ${fieldName}:`, file.name);
                 formData.append(fieldName, file, file.name);
             }
         };
@@ -238,26 +291,83 @@ export const addPartnerDetails = async (
         appendFile(payload.photoFile, 'photoFile');
         appendFile(payload.slaFile, 'slaFile');
 
-        const response = await axios.post<AddPartnerDetailsResponse>(BASE_URL2, formData, {
-            headers: {
-                'Authorization': `Bearer ${AUTH_TOKEN}`,
-                // Let browser set Content-Type with boundary for FormData
-            },
-        });
 
-        console.log('Add Partner Details Response:', response.data);
+
+        const response = await axios.post<AddPartnerDetailsResponse>(
+            `${BASE_URL}/partner/partner-documents`,
+            formData,
+            {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    // Let browser set Content-Type with boundary for FormData
+                },
+                timeout: 60000, // 60 second timeout for file uploads
+            }
+        );
+
         return response.data;
     } catch (error) {
         if (axios.isAxiosError(error)) {
-            console.error("API Error Details:", {
+            console.error("❌ Add Partner Details API Error:", {
                 status: error.response?.status,
+                statusText: error.response?.statusText,
                 data: error.response?.data,
                 headers: error.response?.headers,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    headers: error.config?.headers
+                }
             });
+
+            if (error.response?.status === 403) {
+                console.error('🔴 403 FORBIDDEN - Possible causes:');
+                console.error('1. Token is invalid or expired');
+                console.error('2. Token format is wrong (check if Bearer prefix is needed)');
+                console.error('3. Partner ID does not match the authenticated user');
+                console.error('4. Endpoint requires different HTTP method (GET vs POST)');
+                console.error('5. Missing required permissions/roles in token');
+                throw new Error('Access forbidden. Please check: 1) Token validity, 2) Partner ID matches authenticated user, 3) HTTP method is correct');
+            } else if (error.response?.status === 401) {
+                throw new Error('Unauthorized. The JWT token is not valid or has expired.');
+            } else if (error.response?.status === 404) {
+                throw new Error('Endpoint not found. The partner-documents endpoint may not exist or HTTP method may be wrong.');
+            }
+
             throw new Error(error.response?.data?.message || "Failed to add partner details");
         } else {
-            console.error("Unexpected Error:", error);
+            console.error("❌ Unexpected Error:", error);
             throw new Error("An unexpected error occurred");
         }
+    }
+};
+
+// Option 2: Helper function to retrieve partner documents (if GET is correct)
+export const getPartnerDocuments = async (
+    partnerId: number,
+    authToken: string
+): Promise<any> => {
+    try {
+        const response = await axios.get(
+            `${BASE_URL}/partner/partner-documents`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                params: {
+                    partnerId // Or however backend expects the partner ID
+                }
+            }
+        );
+
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error('❌ Get Partner Documents error:', {
+                status: error.response?.status,
+                data: error.response?.data
+            });
+        }
+        throw error;
     }
 };

@@ -1,7 +1,8 @@
 // lib/api-client/payment.ts
 import axios from 'axios';
 
-const BASE_URL = 'http://103.95.96.76:8080/api/payment';
+// const BASE_URL = 'http://103.95.96.76:8080/api/payment';
+const BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/api/payment';
 
 export const initiateSSLCommerzPayment = async (payload: any) => {
     try {

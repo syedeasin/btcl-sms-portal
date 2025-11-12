@@ -8,6 +8,8 @@ export interface LoginResponse {
     sessionStartDateTime: string;
     userContext: string;
     message: string | null;
+    idPartner?: number;  // Add this line
+    partnerId?: number;  // Add this as fallback
 }
 
 export interface LoginPayload {

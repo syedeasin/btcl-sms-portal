@@ -263,19 +263,25 @@ export default function Dashboard() {
     url: string;
     name: string;
   } | null>(null);
+  const [partnerID, setPartnerID] = useState<string | null>(null);
 
   const bulkSmsPortalUrl = 'https://a2psms.btcliptelephony.gov.bd:4000/';
   const API_BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST';
-  const partnerID = localStorage.getItem('partnerId');
 
   console.log('purchaseForPartner', purchaseForPartner);
 
   useEffect(() => {
-    fetchUserData();
-    fetchPurchaseForPartner(Number(partnerID));
+    // Access localStorage only on client side
+    const id = localStorage.getItem('partnerId');
+    setPartnerID(id);
+
+    fetchUserData(id);
+    if (id) {
+      fetchPurchaseForPartner(Number(id));
+    }
   }, []);
 
-  const fetchUserData = async () => {
+  const fetchUserData = async (partnerId: string | null) => {
     try {
       setLoading(true);
       setError(null);
@@ -309,8 +315,8 @@ export default function Dashboard() {
 
       setUserData(basicUserData);
 
-      if (partnerID) {
-        await fetchPartnerExtra(Number(partnerID));
+      if (partnerId) {
+        await fetchPartnerExtra(Number(partnerId));
       }
     } catch (err) {
       console.error('Error fetching user data:', err);
@@ -465,7 +471,7 @@ export default function Dashboard() {
   };
 
   const isImageFile = (extension: string): boolean => {
-    return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(
+    return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].includes(
       extension.toLowerCase()
     );
   };
@@ -500,33 +506,68 @@ export default function Dashboard() {
       const mimeType = blob.type;
 
       let extension = '.pdf';
+      let isImage = false;
 
-      if (mimeType && mimeType !== 'application/octet-stream') {
-        if (mimeType.includes('image/jpeg') || mimeType.includes('image/jpg')) {
+      // Check if it's an image based on mime type
+      if (mimeType && mimeType.startsWith('image/')) {
+        isImage = true;
+        if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
           extension = '.jpg';
-        } else if (mimeType.includes('image/png')) {
+        } else if (mimeType.includes('png')) {
           extension = '.png';
-        } else if (mimeType.includes('image/gif')) {
+        } else if (mimeType.includes('gif')) {
           extension = '.gif';
-        } else if (mimeType.includes('image/webp')) {
+        } else if (mimeType.includes('webp')) {
           extension = '.webp';
-        } else if (mimeType.includes('application/pdf')) {
-          extension = '.pdf';
+        } else if (mimeType.includes('bmp')) {
+          extension = '.bmp';
+        } else if (mimeType.includes('svg')) {
+          extension = '.svg';
         }
-      } else {
+      } else if (mimeType && mimeType.includes('application/pdf')) {
+        extension = '.pdf';
+      } else if (!mimeType || mimeType === 'application/octet-stream') {
+        // Fallback to file type detection
         extension = await detectFileType(blob);
+        isImage = isImageFile(extension);
       }
 
       const baseFileName = documentName.replace(/\.[^/.]+$/, '');
       const finalFileName = `${baseFileName}${extension}`;
 
-      if (isImageFile(extension)) {
+      if (isImage || isImageFile(extension)) {
+        // For all image types, show in the modal viewer
         const url = window.URL.createObjectURL(blob);
         setImageViewerData({ url, name: finalFileName });
+      } else if (extension === '.pdf') {
+        // For PDFs, create a proper blob with PDF mime type and open in new tab
+        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(pdfBlob);
+        const newWindow = window.open(url, '_blank');
+
+        // Clean up the URL after the new window loads or after a delay
+        if (newWindow) {
+          newWindow.onload = () => {
+            setTimeout(() => {
+              window.URL.revokeObjectURL(url);
+            }, 1000);
+          };
+        } else {
+          // Fallback if popup is blocked
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+          }, 5000);
+        }
       } else {
-        alert(
-          'This document is not an image. Please use the download button to view PDF files.'
-        );
+        // For other file types, trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = finalFileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       }
     } catch (err) {
       console.error('Error viewing document:', err);
@@ -701,7 +742,7 @@ export default function Dashboard() {
   const packageDetails = activePackageInfo(purchaseForPartner);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50/30">
       <Header />
 
       {/* Image Viewer Modal */}
@@ -721,10 +762,10 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-[#067a3e] to-green-700 bg-clip-text text-transparent mb-2">
             Welcome back, {userData.firstName} {userData.lastName}!
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-700">
             Here's an overview of your SMS account
           </p>
         </div>
@@ -755,23 +796,27 @@ export default function Dashboard() {
 
         {/* Account Status & Current Package */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 Account Status
               </h3>
               {accountStatus === 'active' ? (
-                <CheckCircle className="w-6 h-6 text-green-500" />
+                <div className="bg-green-100 p-2 rounded-full">
+                  <CheckCircle className="w-6 h-6 text-[#067a3e]" />
+                </div>
               ) : (
-                <XCircle className="w-6 h-6 text-red-500" />
+                <div className="bg-red-100 p-2 rounded-full">
+                  <XCircle className="w-6 h-6 text-red-500" />
+                </div>
               )}
             </div>
             <div className="flex items-center gap-3">
               <div
-                className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                className={`px-5 py-2.5 rounded-full text-sm font-bold shadow-sm ${
                   accountStatus === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-[#067a3e] border border-green-200'
+                    : 'bg-gradient-to-r from-red-100 to-orange-100 text-red-700 border border-red-200'
                 }`}
               >
                 {accountStatus === 'active' ? 'Active' : 'Inactive'}
@@ -784,42 +829,42 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 Current Package
               </h3>
-              <Package className="w-6 h-6 text-[#067a3e]
-" />
+              <div className="bg-gradient-to-br from-[#067a3e] to-green-600 p-2 rounded-full">
+                <Package className="w-6 h-6 text-white" />
+              </div>
             </div>
 
             {packageDetails.purchased !== null ? (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Purchased:</span>
-                  <span className="font-semibold text-gray-900">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                  <span className="text-gray-600 font-medium">Purchased:</span>
+                  <span className="font-bold text-gray-900">
                     {packageDetails.purchased.toLocaleString()}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Used:</span>
-                  <span className="font-semibold text-gray-900">
+                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                  <span className="text-gray-600 font-medium">Used:</span>
+                  <span className="font-bold text-gray-900">
                     {packageDetails.used?.toLocaleString() ?? 'N/A'}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Remaining:</span>
-                  <span className="font-semibold text-[#067a3e]
-">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-green-50 border border-green-200">
+                  <span className="text-[#067a3e] font-bold">Remaining:</span>
+                  <span className="font-bold text-[#067a3e] text-lg">
                     {packageDetails.remaining?.toLocaleString() ?? 'N/A'}
                   </span>
                 </div>
 
                 {packageDetails.purchaseDate && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Purchase Date:</span>
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                    <span className="text-gray-600 font-medium">Purchase Date:</span>
                     <span className="font-semibold text-gray-900">
                       {new Date(packageDetails.purchaseDate).toLocaleDateString(
                         'en-US',
@@ -834,8 +879,8 @@ export default function Dashboard() {
                 )}
 
                 {packageDetails.expireDate && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Expire Date:</span>
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                    <span className="text-gray-600 font-medium">Expire Date:</span>
                     <span className="font-semibold text-gray-900">
                       {new Date(packageDetails.expireDate).toLocaleDateString(
                         'en-US',
@@ -856,26 +901,32 @@ export default function Dashboard() {
         </div>
 
         {/* API Credentials */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">
-            Portal Credentials
-          </h3>
+        <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 mb-8 hover:shadow-xl transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-gradient-to-br from-[#067a3e] to-green-600 p-2 rounded-lg">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Portal Credentials
+            </h3>
+          </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Username (Email)
               </label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm text-gray-900">
+                <div className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-50 to-green-50/30 border-2 border-gray-200 rounded-lg font-mono text-sm text-gray-900 hover:border-green-300 transition-colors">
                   {userData.email}
                 </div>
                 <button
                   onClick={() => copyToClipboard(userData.email, 'email')}
-                  className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  className="p-3 hover:bg-green-50 border-2 border-transparent hover:border-green-300 rounded-lg transition-all flex-shrink-0"
                 >
                   {copiedField === 'email' ? (
-                    <Check className="w-5 h-5 text-[#067a3e]
-" />
+                    <Check className="w-5 h-5 text-[#067a3e]" />
                   ) : (
                     <Copy className="w-5 h-5 text-gray-600" />
                   )}
@@ -884,16 +935,16 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password
               </label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg font-mono text-sm text-gray-900">
+                <div className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-50 to-green-50/30 border-2 border-gray-200 rounded-lg font-mono text-sm text-gray-900 hover:border-green-300 transition-colors">
                   {showPassword ? userData.password : '••••••••••••'}
                 </div>
                 <button
                   onClick={() => setShowPassword(!showPassword)}
-                  className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  className="p-3 hover:bg-green-50 border-2 border-transparent hover:border-green-300 rounded-lg transition-all flex-shrink-0"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5 text-gray-600" />
@@ -903,11 +954,10 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => copyToClipboard(userData.password, 'password')}
-                  className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  className="p-3 hover:bg-green-50 border-2 border-transparent hover:border-green-300 rounded-lg transition-all flex-shrink-0"
                 >
                   {copiedField === 'password' ? (
-                    <Check className="w-5 h-5 text-[#067a3e]
-" />
+                    <Check className="w-5 h-5 text-[#067a3e]" />
                   ) : (
                     <Copy className="w-5 h-5 text-gray-600" />
                   )}
@@ -915,10 +965,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4 mt-4">
               <div className="flex">
                 <svg
-                  className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5"
+                  className="h-5 w-5 text-[#067a3e] flex-shrink-0 mt-0.5"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -928,7 +978,7 @@ export default function Dashboard() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <p className="ml-3 text-sm text-blue-700">
+                <p className="ml-3 text-sm text-[#067a3e] font-medium">
                   Keep your credentials secure. Never share your password with
                   anyone.
                 </p>
@@ -938,36 +988,43 @@ export default function Dashboard() {
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">
-            Personal Information
-          </h3>
+        <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 mb-8 hover:shadow-xl transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-gradient-to-br from-[#067a3e] to-green-600 p-2 rounded-lg">
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Personal Information
+            </h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+              <label className="block text-sm font-semibold text-gray-600 mb-2">
                 Full Name
               </label>
-              <p className="text-gray-900 font-medium">
+              <p className="text-gray-900 font-bold">
                 {userData.firstName} {userData.lastName}
               </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+              <label className="block text-sm font-semibold text-gray-600 mb-2">
                 Phone Number
               </label>
-              <p className="text-gray-900 font-medium">{userData.phone}</p>
+              <p className="text-gray-900 font-bold">{userData.phone}</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+              <label className="block text-sm font-semibold text-gray-600 mb-2">
                 Email Address
               </label>
-              <p className="text-gray-900 font-medium">{userData.email}</p>
+              <p className="text-gray-900 font-bold">{userData.email}</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+              <label className="block text-sm font-semibold text-gray-600 mb-2">
                 NID Number
               </label>
-              <p className="text-gray-900 font-medium">
+              <p className="text-gray-900 font-bold">
                 {partnerExtra?.nid || 'N/A'}
               </p>
             </div>
@@ -976,56 +1033,64 @@ export default function Dashboard() {
 
         {/* Address Information */}
         {partnerExtra && (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">
-              Address Information
-            </h3>
+          <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 mb-8 hover:shadow-xl transition-shadow">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-gradient-to-br from-[#067a3e] to-green-600 p-2 rounded-lg">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Address Information
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Address Line 1
                 </label>
-                <p className="text-gray-900">{partnerExtra.address1}</p>
+                <p className="text-gray-900 font-bold">{partnerExtra.address1}</p>
               </div>
               {partnerExtra.address2 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
                     Address Line 2
                   </label>
-                  <p className="text-gray-900">{partnerExtra.address2}</p>
+                  <p className="text-gray-900 font-bold">{partnerExtra.address2}</p>
                 </div>
               )}
               {partnerExtra.address3 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                  <label className="block text-sm font-semibold text-gray-600 mb-2">
                     Address Line 3
                   </label>
-                  <p className="text-gray-900">{partnerExtra.address3}</p>
+                  <p className="text-gray-900 font-bold">{partnerExtra.address3}</p>
                 </div>
               )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   City
                 </label>
-                <p className="text-gray-900">{partnerExtra.city}</p>
+                <p className="text-gray-900 font-bold">{partnerExtra.city}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   State/Division
                 </label>
-                <p className="text-gray-900">{partnerExtra.state}</p>
+                <p className="text-gray-900 font-bold">{partnerExtra.state}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Postal Code
                 </label>
-                <p className="text-gray-900">{partnerExtra.postalCode}</p>
+                <p className="text-gray-900 font-bold">{partnerExtra.postalCode}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Country
                 </label>
-                <p className="text-gray-900">
+                <p className="text-gray-900 font-bold">
                   {partnerExtra.countryCode === 'BD'
                     ? 'Bangladesh'
                     : partnerExtra.countryCode}
@@ -1037,30 +1102,37 @@ export default function Dashboard() {
 
         {/* Business Information */}
         {partnerExtra && (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">
-              Business Information
-            </h3>
+          <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 mb-8 hover:shadow-xl transition-shadow">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-gradient-to-br from-[#067a3e] to-green-600 p-2 rounded-lg">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">
+                Business Information
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Trade License Number
                 </label>
-                <p className="text-gray-900 font-medium">
+                <p className="text-gray-900 font-bold">
                   {partnerExtra.tradeLicenseNumber}
                 </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   TIN Number
                 </label>
-                <p className="text-gray-900 font-medium">{partnerExtra.tin}</p>
+                <p className="text-gray-900 font-bold">{partnerExtra.tin}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Tax Return Date
                 </label>
-                <p className="text-gray-900 font-medium">
+                <p className="text-gray-900 font-bold">
                   {new Date(partnerExtra.taxReturnDate).toLocaleDateString(
                     'en-US',
                     {
@@ -1071,11 +1143,11 @@ export default function Dashboard() {
                   )}
                 </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Uploaded By
                 </label>
-                <p className="text-gray-900 font-medium">
+                <p className="text-gray-900 font-bold">
                   {partnerExtra.uploadedBy}
                 </p>
               </div>
@@ -1092,46 +1164,45 @@ export default function Dashboard() {
                     View and download your submitted documents
                   </p>
                 </div>
-                <div className="bg-green-50 px-3 py-1.5 rounded-full">
-                  <span className="text-xs font-semibold text-green-700">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-[#067a3e] bg-white hover:bg-green-50 border-2 border-[#067a3e] rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                  <span className="text-xs font-semibold text-[#067a3e]">
                     {documents?.filter((doc) => doc.available).length} Documents
                   </span>
                 </div>
               </div>
 
               {/* Table View */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-white border-2 border-gray-100 rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-bold text-[#067a3e] uppercase tracking-wider">
                           Document Name
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-bold text-[#067a3e] uppercase tracking-wider">
                           Type
                         </th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-center text-xs font-bold text-[#067a3e] uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-center text-xs font-bold text-[#067a3e] uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-100">
                       {documents?.map((doc, index) => (
                         <tr
                           key={doc.type}
-                          className="hover:bg-green-50/50 transition-colors"
+                          className="hover:bg-gradient-to-r hover:from-green-50/80 hover:to-green-50/40 transition-all duration-200 group"
                         >
                           {/* Document Name */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10 bg-green-50 rounded-lg flex items-center justify-center">
+                              <div className="flex-shrink-0 h-11 w-11 bg-gradient-to-br from-[#067a3e] to-green-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                                 <svg
-                                  className="w-5 h-5 text-[#067a3e]
-"
+                                  className="w-5 h-5 text-white"
                                   fill="none"
                                   viewBox="0 0 24 24"
                                   stroke="currentColor"
@@ -1145,7 +1216,7 @@ export default function Dashboard() {
                                 </svg>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-semibold text-gray-900">
+                                <div className="text-sm font-semibold text-gray-900 group-hover:text-[#067a3e] transition-colors">
                                   {doc.name}
                                 </div>
                               </div>
@@ -1154,14 +1225,14 @@ export default function Dashboard() {
 
                           {/* Type */}
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                            <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
                               {doc.type.toUpperCase()}
                             </span>
                           </td>
 
                           {/* Status */}
                           <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-green-100 to-emerald-100 text-[#067a3e] border border-green-200 shadow-sm">
                               <CheckCircle className="w-3.5 h-3.5" />
                               Verified
                             </span>
@@ -1175,7 +1246,7 @@ export default function Dashboard() {
                                   viewDocument(doc.type, `${doc.name}`)
                                 }
                                 disabled={viewingDoc === doc.type}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-[#067a3e] to-green-600 hover:from-[#055a2e] hover:to-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="View Document"
                               >
                                 {viewingDoc === doc.type ? (
@@ -1196,7 +1267,7 @@ export default function Dashboard() {
                                   downloadDocument(doc.type, `${doc.name}`)
                                 }
                                 disabled={downloadingDoc === doc.type}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-[#067a3e] bg-white hover:bg-green-50 border-2 border-[#067a3e] rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Download Document"
                               >
                                 {downloadingDoc === doc.type ? (

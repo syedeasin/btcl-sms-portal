@@ -252,35 +252,30 @@ export default function RegisterPage() {
 
       // Get company name from localStorage
       const companyName = localStorage.getItem('companyName');
-      console.log('📋 Form data gathered:', {
-        companyName: companyName,
-        email: personalInfoData.email,
-        phone: personalInfoData.phone,
-        name: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
-      });
 
+        const fullName = `${personalInfoData.firstName} ${personalInfoData.lastName}`;
       // 2. First call: create partner (NO TOKEN REQUIRED)
       console.log('\n🔵 STEP 2: Creating partner account...');
-      const partnerPayload = {
-        partnerName: companyName,
-        alternateNameOther: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
-        telephone: personalInfoData.phone,
-        email: personalInfoData.email,
-        userPassword: personalInfoData.password,
-        address1: otherInfoData.address1,
-        address2: otherInfoData.address2 || '',
-        city: otherInfoData.city,
-        state: otherInfoData.state,
-        postalCode: otherInfoData.postalCode,
-        country: otherInfoData.country,
-        alternateNameInvoice: `${personalInfoData.firstName} ${personalInfoData.lastName}`,
-        vatRegistrationNo: otherInfoData.tinNumber || 'N/A',
-        invoiceAddress: otherInfoData.address1,
-        customerPrePaid: 1,
-        partnerType: 1,
-        defaultCurrency: 1,
-        callSrcId: 2,
-      };
+        const partnerPayload = {
+            partnerName: companyName,
+            alternateNameOther: fullName,
+            alternateNameInvoice: fullName,
+            telephone: personalInfoData.phone,
+            email: personalInfoData.email,
+            userPassword: personalInfoData.password,
+            address1: otherInfoData.address1,
+            address2: otherInfoData.address2 || '',
+            city: otherInfoData.city,
+            state: otherInfoData.state,
+            postalCode: otherInfoData.postalCode,
+            country: otherInfoData.country,
+            vatRegistrationNo: otherInfoData.tinNumber || 'N/A',
+            invoiceAddress: otherInfoData.address1,
+            customerPrePaid: 1,
+            partnerType: 3,
+            defaultCurrency: 1,
+            callSrcId: 2,
+        };
 
       const partnerResponse = await createPartner(partnerPayload);
 

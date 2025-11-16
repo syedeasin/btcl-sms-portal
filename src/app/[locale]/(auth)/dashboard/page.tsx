@@ -19,6 +19,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 // Mock packages data
 const packages = [
@@ -95,6 +96,36 @@ interface PartnerExtra {
   lastTaxReturnAvailable: boolean;
   uploadedBy: string;
   uploadedAt: string;
+}
+
+interface DecodedToken {
+  idPartner: number;
+  email?: string;
+  [key: string]: any;
+}
+
+interface PartnerData {
+  idPartner: number;
+  partnerName: string;
+  alternateNameInvoice: string;
+  alternateNameOther: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  telephone: string;
+  email: string;
+  customerPrePaid: number;
+  partnerType: number;
+  date1: string;
+  callSrcId: number;
+  defaultCurrency: number;
+  invoiceAddress: string;
+  vatRegistrationNo: string;
+  paymentAdvice: string | null;
+  userPassword: string | null;
 }
 
 interface UserData {
@@ -272,52 +303,67 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Access localStorage only on client side
-    const id = localStorage.getItem('partnerId');
-    setPartnerID(id);
+    const authToken = localStorage.getItem('authToken');
 
-    fetchUserData(id);
-    if (id) {
-      fetchPurchaseForPartner(Number(id));
+    if (authToken) {
+      try {
+        const decodedToken = jwtDecode<DecodedToken>(authToken);
+        const idPartner = decodedToken?.idPartner;
+
+        if (idPartner) {
+          setPartnerID(String(idPartner));
+          fetchUserData(idPartner);
+          fetchPurchaseForPartner(idPartner);
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setError('Invalid authentication token');
+        setLoading(false);
+      }
+    } else {
+      setError('No authentication token found');
+      setLoading(false);
     }
   }, []);
 
-  const fetchUserData = async (partnerId: string | null) => {
+  const fetchUserData = async (idPartner: number) => {
     try {
       setLoading(true);
       setError(null);
 
-      const email = localStorage.getItem('userEmail') || '';
-      const password = localStorage.getItem('userPassword') || '';
-      const storedUserData = localStorage.getItem('registrationData');
+      const authToken = localStorage.getItem('authToken');
+      const password = localStorage.getItem('userPassword') || '********';
 
-      let basicUserData: UserData;
+      // Fetch partner details from API
+      const response = await fetch(`${API_BASE_URL}/partner/get-partner`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ idPartner }),
+      });
 
-      if (storedUserData) {
-        const parsedData = JSON.parse(storedUserData);
-        basicUserData = {
-          firstName: parsedData.firstName,
-          lastName: parsedData.lastName,
-          email: parsedData.email,
-          phone: parsedData.phone,
-          password: parsedData.password,
-          partnerId: parsedData.partnerId,
-        };
-      } else {
-        basicUserData = {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: email || 'john.doe@example.com',
-          phone: '+880 1712345678',
-          password: password || '********',
-          partnerId: 123,
-        };
+      if (!response.ok) {
+        throw new Error('Failed to fetch partner details');
       }
+
+      const partnerData: PartnerData = await response.json();
+
+      // Map API response to UserData
+      const basicUserData: UserData = {
+        firstName: partnerData.partnerName || '',
+        lastName: '',
+        email: partnerData.email || '',
+        phone: partnerData.telephone || '',
+        password: password,
+        partnerId: partnerData.idPartner,
+      };
 
       setUserData(basicUserData);
 
-      if (partnerId) {
-        await fetchPartnerExtra(Number(partnerId));
-      }
+      // Fetch additional partner extra information
+      await fetchPartnerExtra(idPartner);
     } catch (err) {
       console.error('Error fetching user data:', err);
       setError('Failed to load user data');
@@ -680,7 +726,20 @@ export default function Dashboard() {
             {error || 'Failed to load user data'}
           </p>
           <button
-            onClick={fetchUserData}
+            onClick={() => {
+              const authToken = localStorage.getItem('authToken');
+              if (authToken) {
+                try {
+                  const decodedToken = jwtDecode<DecodedToken>(authToken);
+                  const idPartner = decodedToken?.idPartner;
+                  if (idPartner) {
+                    fetchUserData(idPartner);
+                  }
+                } catch (error) {
+                  console.error('Error decoding token:', error);
+                }
+              }
+            }}
             className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             Try Again

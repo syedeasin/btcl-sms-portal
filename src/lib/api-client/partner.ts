@@ -131,7 +131,26 @@ interface LoginResponse {
 
 // ---------------------- CREATE PARTNER ----------------------
 
-export const createPartner = async (payload: CreatePartnerPayload): Promise<CreatePartnerResponse> => {
+export const createPartner = async (payload: {
+    partnerName: string | null;
+    alternateNameOther: string;
+    telephone: string;
+    email: string;
+    userPassword: string;
+    address1: string;
+    address2: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    alternateNameInvoice: string;
+    vatRegistrationNo: string;
+    invoiceAddress: string;
+    customerPrePaid: number;
+    partnerType: number;
+    defaultCurrency: number;
+    callSrcId: number
+}): Promise<CreatePartnerResponse> => {
   try {
     const response = await axios.post<CreatePartnerResponse>(
       `${BASE_URL}/partner/create-partner`,

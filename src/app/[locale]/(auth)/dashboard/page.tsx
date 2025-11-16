@@ -619,7 +619,8 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-green-600 mx-auto mb-4" />
+          <Loader2 className="animate-spin h-12 w-12 text-[#067a3e]
+ mx-auto mb-4" />
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
@@ -729,7 +730,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bulk SMS Portal Link */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 mb-8">
+        <div className="bg-gradient-to-r from-[#067a3e] to-green-600 rounded-xl shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-white text-xl font-semibold mb-2">
@@ -743,7 +744,8 @@ export default function Dashboard() {
               href={bulkSmsPortalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 bg-white text-[#067a3e]
+ px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
             >
               SMS Admin Dashboard
               <ExternalLink className="w-5 h-5" />
@@ -787,7 +789,8 @@ export default function Dashboard() {
               <h3 className="text-lg font-semibold text-gray-900">
                 Current Package
               </h3>
-              <Package className="w-6 h-6 text-green-600" />
+              <Package className="w-6 h-6 text-[#067a3e]
+" />
             </div>
 
             {packageDetails.purchased !== null ? (
@@ -808,7 +811,8 @@ export default function Dashboard() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Remaining:</span>
-                  <span className="font-semibold text-green-600">
+                  <span className="font-semibold text-[#067a3e]
+">
                     {packageDetails.remaining?.toLocaleString() ?? 'N/A'}
                   </span>
                 </div>
@@ -870,7 +874,8 @@ export default function Dashboard() {
                   className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 >
                   {copiedField === 'email' ? (
-                    <Check className="w-5 h-5 text-green-600" />
+                    <Check className="w-5 h-5 text-[#067a3e]
+" />
                   ) : (
                     <Copy className="w-5 h-5 text-gray-600" />
                   )}
@@ -901,7 +906,8 @@ export default function Dashboard() {
                   className="p-3 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 >
                   {copiedField === 'password' ? (
-                    <Check className="w-5 h-5 text-green-600" />
+                    <Check className="w-5 h-5 text-[#067a3e]
+" />
                   ) : (
                     <Copy className="w-5 h-5 text-gray-600" />
                   )}
@@ -1077,63 +1083,141 @@ export default function Dashboard() {
 
             {/* Uploaded Documents */}
             <div className="border-t pt-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                Uploaded Documents
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {documents?.map((doc) => (
-                  <div
-                    key={doc.type}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-green-500 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-gray-700">
-                        {doc.name}
-                      </span>
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                    Uploaded Documents
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    View and download your submitted documents
+                  </p>
+                </div>
+                <div className="bg-green-50 px-3 py-1.5 rounded-full">
+                  <span className="text-xs font-semibold text-green-700">
+                    {documents?.filter((doc) => doc.available).length} Documents
+                  </span>
+                </div>
+              </div>
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => viewDocument(doc.type, `${doc.name}`)}
-                        disabled={viewingDoc === doc.type}
-                        className="flex-1 flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {viewingDoc === doc.type ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-4 h-4" />
-                            View
-                          </>
-                        )}
-                      </button>
+              {/* Table View */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Document Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {documents?.map((doc, index) => (
+                        <tr
+                          key={doc.type}
+                          className="hover:bg-green-50/50 transition-colors"
+                        >
+                          {/* Document Name */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 bg-green-50 rounded-lg flex items-center justify-center">
+                                <svg
+                                  className="w-5 h-5 text-[#067a3e]
+"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                  />
+                                </svg>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {doc.name}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
 
-                      <button
-                        onClick={() =>
-                          downloadDocument(doc.type, `${doc.name}`)
-                        }
-                        disabled={downloadingDoc === doc.type}
-                        className="flex-1 flex items-center justify-center gap-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {downloadingDoc === doc.type ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Downloading...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4" />
-                            Download
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                          {/* Type */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                              {doc.type.toUpperCase()}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Verified
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() =>
+                                  viewDocument(doc.type, `${doc.name}`)
+                                }
+                                disabled={viewingDoc === doc.type}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="View Document"
+                              >
+                                {viewingDoc === doc.type ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Loading
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5" />
+                                    View
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() =>
+                                  downloadDocument(doc.type, `${doc.name}`)
+                                }
+                                disabled={downloadingDoc === doc.type}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download Document"
+                              >
+                                {downloadingDoc === doc.type ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Downloading
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="w-3.5 h-3.5" />
+                                    Download
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

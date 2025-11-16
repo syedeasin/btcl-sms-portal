@@ -157,11 +157,23 @@ interface PurchaseForPartner {
 }
 
 interface ActivePackageDetails {
+  packageName: string | null;
+  unit: string;
   purchased: number | null;
   used: number | null;
   remaining: number | null;
   purchaseDate: string | null;
   expireDate: string | null;
+}
+
+interface TopUpData {
+  purchaseDate: string;
+  uom: string;
+  balanceBefore: number;
+  name: string;
+  balanceAfter: number;
+  expireDate: string;
+  status: string;
 }
 
 // Image Viewer Modal Component
@@ -295,6 +307,8 @@ export default function Dashboard() {
     name: string;
   } | null>(null);
   const [partnerID, setPartnerID] = useState<string | null>(null);
+  const [topUpData, setTopUpData] = useState<TopUpData | null>(null);
+  const [activeTab, setActiveTab] = useState<'topup' | 'package'>('topup');
 
   const bulkSmsPortalUrl = 'https://a2psms.btcliptelephony.gov.bd:4000/';
   const API_BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST';
@@ -314,6 +328,7 @@ export default function Dashboard() {
           setPartnerID(String(idPartner));
           fetchUserData(idPartner);
           fetchPurchaseForPartner(idPartner);
+          fetchTopUpData(idPartner);
         }
       } catch (error) {
         console.error('Error decoding token:', error);
@@ -440,6 +455,39 @@ export default function Dashboard() {
     }
   };
 
+  const fetchTopUpData = async (partnerId: number) => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+
+      const response = await fetch(
+        `${API_BASE_URL}/user/DashBoard/getTopupBalanceForUser`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ idPartner: partnerId }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch top-up data');
+      }
+
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        const bdtData = data.find((item) => item.uom === 'BDT');
+        setTopUpData(bdtData || null);
+      } else {
+        setTopUpData(null);
+      }
+    } catch (err) {
+      console.error('Error fetching top-up data:', err);
+    }
+  };
+
   const activePackageInfo = (
     packageData: PurchaseForPartner | null
   ): ActivePackageDetails => {
@@ -449,6 +497,8 @@ export default function Dashboard() {
       packageData.packageAccounts.length === 0
     ) {
       return {
+        packageName: null,
+        unit: 'SMS',
         purchased: null,
         used: null,
         remaining: null,
@@ -458,8 +508,11 @@ export default function Dashboard() {
     }
 
     const activePackageAccount = packageData.packageAccounts[0];
+    const unit = activePackageAccount?.uom === 'OTH_ea' ? 'SMS' : activePackageAccount?.uom || 'SMS';
 
     return {
+      packageName: activePackageAccount?.name ?? null,
+      unit: unit,
       purchased: activePackageAccount?.quantity ?? null,
       used: activePackageAccount
         ? activePackageAccount.quantity - activePackageAccount.balanceAfter
@@ -890,71 +943,145 @@ export default function Dashboard() {
 
           <div className="bg-white rounded-xl shadow-lg border border-green-100 p-6 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Current Package
-              </h3>
+              <div className="flex gap-4 items-center border-b border-gray-200 pb-2">
+                <button
+                  onClick={() => setActiveTab('topup')}
+                  className={`px-4 py-2 font-semibold transition-colors ${
+                    activeTab === 'topup'
+                      ? 'text-[#067a3e] border-b-2 border-[#067a3e]'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  TopUp
+                </button>
+                <button
+                  onClick={() => setActiveTab('package')}
+                  className={`px-4 py-2 font-semibold transition-colors ${
+                    activeTab === 'package'
+                      ? 'text-[#067a3e] border-b-2 border-[#067a3e]'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Package
+                </button>
+              </div>
               <div className="bg-gradient-to-br from-[#067a3e] to-green-600 p-2 rounded-full">
                 <Package className="w-6 h-6 text-white" />
               </div>
             </div>
 
-            {packageDetails.purchased !== null ? (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
-                  <span className="text-gray-600 font-medium">Purchased:</span>
-                  <span className="font-bold text-gray-900">
-                    {packageDetails.purchased.toLocaleString()}
-                  </span>
-                </div>
+            {/* TopUp Tab Content */}
+            {activeTab === 'topup' && (
+              topUpData ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-green-50 border border-green-200">
+                    <span className="text-[#067a3e] font-bold">Current Balance:</span>
+                    <span className="font-bold text-[#067a3e] text-lg">
+                      {topUpData.balanceAfter?.toFixed(2) ?? 'N/A'} {topUpData.uom}
+                    </span>
+                  </div>
 
-                <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
-                  <span className="text-gray-600 font-medium">Used:</span>
-                  <span className="font-bold text-gray-900">
-                    {packageDetails.used?.toLocaleString() ?? 'N/A'}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center p-2 rounded-lg bg-green-50 border border-green-200">
-                  <span className="text-[#067a3e] font-bold">Remaining:</span>
-                  <span className="font-bold text-[#067a3e] text-lg">
-                    {packageDetails.remaining?.toLocaleString() ?? 'N/A'}
-                  </span>
-                </div>
-
-                {packageDetails.purchaseDate && (
                   <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
-                    <span className="text-gray-600 font-medium">Purchase Date:</span>
-                    <span className="font-semibold text-gray-900">
-                      {new Date(packageDetails.purchaseDate).toLocaleDateString(
-                        'en-US',
-                        {
+                    <span className="text-gray-600 font-medium">Status:</span>
+                    <span className={`font-bold ${topUpData.status === 'ACTIVE' ? 'text-green-600' : 'text-gray-600'}`}>
+                      {topUpData.status}
+                    </span>
+                  </div>
+
+                  {topUpData.purchaseDate && (
+                    <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                      <span className="text-gray-600 font-medium">Purchase Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {new Date(topUpData.purchaseDate).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric',
-                        }
-                      )}
-                    </span>
-                  </div>
-                )}
+                        })}
+                      </span>
+                    </div>
+                  )}
 
-                {packageDetails.expireDate && (
-                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
-                    <span className="text-gray-600 font-medium">Expire Date:</span>
-                    <span className="font-semibold text-gray-900">
-                      {new Date(packageDetails.expireDate).toLocaleDateString(
-                        'en-US',
-                        {
+                  {topUpData.expireDate && (
+                    <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                      <span className="text-gray-600 font-medium">Expire Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {new Date(topUpData.expireDate).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric',
-                        }
-                      )}
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No active top-up found</p>
+              )
+            )}
+
+            {/* Package Tab Content */}
+            {activeTab === 'package' && (
+              packageDetails.purchased !== null ? (
+                <div className="space-y-3">
+                  {packageDetails.packageName && (
+                    <div className="flex justify-between items-center p-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200">
+                      <span className="text-[#067a3e] font-bold">Package:</span>
+                      <span className="font-bold text-[#067a3e] text-lg">
+                        {packageDetails.packageName}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                    <span className="text-gray-600 font-medium">Purchased:</span>
+                    <span className="font-bold text-gray-900">
+                      {packageDetails.purchased.toLocaleString()} {packageDetails.unit}
                     </span>
                   </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No active package found</p>
+
+                  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                    <span className="text-gray-600 font-medium">Used:</span>
+                    <span className="font-bold text-gray-900">
+                      {packageDetails.used?.toLocaleString() ?? 'N/A'} {packageDetails.unit}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-green-50 border border-green-200">
+                    <span className="text-[#067a3e] font-bold">Remaining:</span>
+                    <span className="font-bold text-[#067a3e] text-lg">
+                      {packageDetails.remaining?.toLocaleString() ?? 'N/A'} {packageDetails.unit}
+                    </span>
+                  </div>
+
+                  {packageDetails.purchaseDate && (
+                    <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                      <span className="text-gray-600 font-medium">Purchase Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {new Date(packageDetails.purchaseDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {packageDetails.expireDate && (
+                    <div className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50/50 transition-colors">
+                      <span className="text-gray-600 font-medium">Expire Date:</span>
+                      <span className="font-semibold text-gray-900">
+                        {new Date(packageDetails.expireDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No active package found</p>
+              )
             )}
           </div>
         </div>

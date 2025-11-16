@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { API_ENDPOINTS, buildApiUrl, BULK_SMS_PORTAL_URL } from '@/config/api';
 
 // Mock packages data
 const packages = [
@@ -310,9 +311,6 @@ export default function Dashboard() {
   const [topUpData, setTopUpData] = useState<TopUpData | null>(null);
   const [activeTab, setActiveTab] = useState<'topup' | 'package'>('topup');
 
-  const bulkSmsPortalUrl = 'https://a2psms.btcliptelephony.gov.bd:4000/';
-  const API_BASE_URL = 'https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST';
-
   console.log('purchaseForPartner', purchaseForPartner);
 
   useEffect(() => {
@@ -350,7 +348,7 @@ export default function Dashboard() {
       const password = localStorage.getItem('userPassword') || '********';
 
       // Fetch partner details from API
-      const response = await fetch(`${API_BASE_URL}/partner/get-partner`, {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.partner.getPartner), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -392,7 +390,7 @@ export default function Dashboard() {
       const authToken = localStorage.getItem('authToken');
 
       const response = await fetch(
-        `${API_BASE_URL}/partner/get-partner-extra`,
+        buildApiUrl(API_ENDPOINTS.partner.getPartnerExtra),
         {
           method: 'POST',
           headers: {
@@ -419,7 +417,7 @@ export default function Dashboard() {
       const authToken = localStorage.getItem('authToken');
 
       const response = await fetch(
-        `${API_BASE_URL}/package/getPurchaseForPartner`,
+        buildApiUrl(API_ENDPOINTS.package.getPurchaseForPartner),
         {
           method: 'POST',
           headers: {
@@ -460,7 +458,7 @@ export default function Dashboard() {
       const authToken = localStorage.getItem('authToken');
 
       const response = await fetch(
-        `${API_BASE_URL}/user/DashBoard/getTopupBalanceForUser`,
+        buildApiUrl(API_ENDPOINTS.user.getTopupBalanceForUser),
         {
           method: 'POST',
           headers: {
@@ -583,7 +581,7 @@ export default function Dashboard() {
       const authToken = localStorage.getItem('authToken');
 
       const response = await fetch(
-        `${API_BASE_URL}/partner/get-partner-document`,
+        buildApiUrl(API_ENDPOINTS.partner.getPartnerDocument),
         {
           method: 'POST',
           headers: {
@@ -687,7 +685,7 @@ export default function Dashboard() {
       const authToken = localStorage.getItem('authToken');
 
       const response = await fetch(
-        `${API_BASE_URL}/partner/get-partner-document`,
+        buildApiUrl(API_ENDPOINTS.partner.getPartnerDocument),
         {
           method: 'POST',
           headers: {
@@ -894,7 +892,7 @@ export default function Dashboard() {
               </p>
             </div>
             <a
-              href={bulkSmsPortalUrl}
+              href={BULK_SMS_PORTAL_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-white text-[#067a3e]

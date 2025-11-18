@@ -540,6 +540,39 @@ export default function RegisterPage() {
                         {...field}
                         placeholder="+880 1XXXXXXXXX"
                         disabled={otpSent}
+                        onChange={(e) => {
+                          let value = e.target.value.replace(/\s/g, ''); // Remove spaces
+
+                          // If starts with 01, add +88
+                          if (value.startsWith('01')) {
+                            value = '+88' + value;
+                          }
+                          // If starts with 8801 but no +, add +
+                          else if (value.startsWith('8801') && !value.startsWith('+')) {
+                            value = '+' + value;
+                          }
+                          // If starts with 1 and length suggests it's a phone number, add +880
+                          else if (value.startsWith('1') && value.length >= 10 && value.length <= 11) {
+                            value = '+880' + value;
+                          }
+
+                          field.onChange(value);
+                        }}
+                        onBlur={(e) => {
+                          let value = e.target.value.replace(/\s/g, ''); // Remove spaces
+
+                          // Final formatting on blur
+                          if (value.startsWith('01')) {
+                            value = '+88' + value;
+                          } else if (value.startsWith('8801') && !value.startsWith('+')) {
+                            value = '+' + value;
+                          } else if (value.startsWith('1') && value.length === 10) {
+                            value = '+880' + value;
+                          }
+
+                          field.onChange(value);
+                          field.onBlur();
+                        }}
                         className={`w-full px-3 py-2 border ${
                           fieldState.error
                             ? 'border-red-500'
@@ -551,6 +584,11 @@ export default function RegisterPage() {
                       {fieldState.error && (
                         <p className="text-red-500 text-sm mt-1">
                           {fieldState.error.message}
+                        </p>
+                      )}
+                      {!fieldState.error && !otpSent && (
+                        <p className="text-gray-500 text-sm mt-1">
+                          Enter as 01XXXXXXXXX, 8801XXXXXXXXX, or +8801XXXXXXXXX
                         </p>
                       )}
                     </>

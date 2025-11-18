@@ -817,7 +817,7 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-black font-medium mb-1">
-                    Address 1
+                    Address
                   </label>
                   <Controller
                     name="address1"
@@ -844,50 +844,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* <div>
-                                    <label className="block text-black font-medium mb-1">Address 2</label>
-                                    <Controller
-                                        name="address2"
-                                        control={otherInfoForm.control}
-                                        render={({field}) => (
-                                            <input
-                                                type="text"
-                                                {...field}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                                            />
-                                        )}
-                                    />
-                                </div> */}
-
-                {/* <div>
-                                    <label className="block text-black font-medium mb-1">Address 3</label>
-                                    <Controller
-                                        name="address3"
-                                        control={otherInfoForm.control}
-                                        render={({field}) => (
-                                            <input
-                                                type="text"
-                                                {...field}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                                            />
-                                        )}
-                                    />
-                                </div> */}
-
-                {/* <div>
-                                    <label className="block text-black font-medium mb-1">Address 4</label>
-                                    <Controller
-                                        name="address4"
-                                        control={otherInfoForm.control}
-                                        render={({field}) => (
-                                            <input
-                                                type="text"
-                                                {...field}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                                            />
-                                        )}
-                                    />
-                                </div> */}
 
                 <div>
                   <label className="block text-black font-medium mb-1">
@@ -897,35 +853,6 @@ export default function RegisterPage() {
                     name="city"
                     control={otherInfoForm.control}
                     rules={{ required: 'City is required' }}
-                    render={({ field, fieldState }) => (
-                      <>
-                        <input
-                          type="text"
-                          {...field}
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-black font-medium mb-1">
-                    State
-                  </label>
-                  <Controller
-                    name="state"
-                    control={otherInfoForm.control}
-                    rules={{ required: 'State is required' }}
                     render={({ field, fieldState }) => (
                       <>
                         <input

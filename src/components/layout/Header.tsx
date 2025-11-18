@@ -25,8 +25,12 @@ export function Header() {
   ]
 
   const handleLogout = () => {
+    // Clear all localStorage data
+    localStorage.clear()
     logout()
     toast.success('Logged out successfully')
+    // Redirect to home page
+    window.location.href = `/${locale}`
   }
 
   return (
@@ -65,7 +69,7 @@ export function Header() {
 
             {/* Actions */}
             <div className="flex items-center space-x-4">
-              <LanguageToggle />
+              {/*<LanguageToggle />*/}
 
               {loading ? (
                   // Show loading state

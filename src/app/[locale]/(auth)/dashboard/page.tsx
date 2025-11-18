@@ -1232,37 +1232,16 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  Address Line 1
+                  Address
                 </label>
                 <p className="text-gray-900 font-bold">{partnerExtra.address1}</p>
               </div>
-              {partnerExtra.address2 && (
-                <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Address Line 2
-                  </label>
-                  <p className="text-gray-900 font-bold">{partnerExtra.address2}</p>
-                </div>
-              )}
-              {partnerExtra.address3 && (
-                <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
-                  <label className="block text-sm font-semibold text-gray-600 mb-2">
-                    Address Line 3
-                  </label>
-                  <p className="text-gray-900 font-bold">{partnerExtra.address3}</p>
-                </div>
-              )}
+
               <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
                   City
                 </label>
                 <p className="text-gray-900 font-bold">{partnerExtra.city}</p>
-              </div>
-              <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
-                  State/Division
-                </label>
-                <p className="text-gray-900 font-bold">{partnerExtra.state}</p>
               </div>
               <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-green-50/20 border border-gray-200 hover:border-green-300 transition-colors">
                 <label className="block text-sm font-semibold text-gray-600 mb-2">
@@ -1385,19 +1364,150 @@ export default function Dashboard() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-11 w-11 bg-gradient-to-br from-[#067a3e] to-green-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                                <svg
-                                  className="w-5 h-5 text-white"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                  />
-                                </svg>
+                                {/* Trade License Icon - Building */}
+                                {doc.type === 'tradelicense' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                    />
+                                  </svg>
+                                )}
+                                {/* TIN Certificate Icon - Document with lines */}
+                                {doc.type === 'tin' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                  </svg>
+                                )}
+                                {/* Tax Return Icon - Calculator */}
+                                {doc.type === 'taxreturn' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                )}
+                                {/* NID Front/Back Icons - ID Card */}
+                                {(doc.type === 'nidfront' || doc.type === 'nidback') && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                                    />
+                                  </svg>
+                                )}
+                                {/* BIN Certificate Icon - Clipboard with list */}
+                                {doc.type === 'bin' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                                    />
+                                  </svg>
+                                )}
+                                {/* VAT Document Icon - Currency/Money */}
+                                {doc.type === 'vat' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                                    />
+                                  </svg>
+                                )}
+                                {/* BTRC Registration Icon - Broadcast/Signal */}
+                                {doc.type === 'btrc' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                                    />
+                                  </svg>
+                                )}
+                                {/* Photo Icon - Camera/Image */}
+                                {doc.type === 'photo' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                )}
+                                {/* SLA Document Icon - Shield with check */}
+                                {doc.type === 'sla' && (
+                                  <svg
+                                    className="w-5 h-5 text-white"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                    />
+                                  </svg>
+                                )}
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-semibold text-gray-900 group-hover:text-[#067a3e] transition-colors">
@@ -1416,10 +1526,17 @@ export default function Dashboard() {
 
                           {/* Status */}
                           <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-green-100 to-emerald-100 text-[#067a3e] border border-green-200 shadow-sm">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Verified
-                            </span>
+                            {doc.available ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-green-100 to-emerald-100 text-[#067a3e] border border-green-200 shadow-sm">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-100 to-orange-100 text-red-600 border border-red-200 shadow-sm">
+                                <XCircle className="w-3.5 h-3.5" />
+                                Unverified
+                              </span>
+                            )}
                           </td>
 
                           {/* Actions */}
@@ -1427,11 +1544,11 @@ export default function Dashboard() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() =>
-                                  viewDocument(doc.type, `${doc.name}`)
+                                  doc.available && viewDocument(doc.type, `${doc.name}`)
                                 }
-                                disabled={viewingDoc === doc.type}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-[#067a3e] to-green-600 hover:from-[#055a2e] hover:to-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="View Document"
+                                disabled={!doc.available || viewingDoc === doc.type}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-[#067a3e] to-green-600 hover:from-[#055a2e] hover:to-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
+                                title={doc.available ? "View Document" : "Document not available"}
                               >
                                 {viewingDoc === doc.type ? (
                                   <>
@@ -1448,11 +1565,11 @@ export default function Dashboard() {
 
                               <button
                                 onClick={() =>
-                                  downloadDocument(doc.type, `${doc.name}`)
+                                  doc.available && downloadDocument(doc.type, `${doc.name}`)
                                 }
-                                disabled={downloadingDoc === doc.type}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-[#067a3e] bg-white hover:bg-green-50 border-2 border-[#067a3e] rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Download Document"
+                                disabled={!doc.available || downloadingDoc === doc.type}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-[#067a3e] bg-white hover:bg-green-50 border-2 border-[#067a3e] rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-400 disabled:text-gray-400"
+                                title={doc.available ? "Download Document" : "Document not available"}
                               >
                                 {downloadingDoc === doc.type ? (
                                   <>

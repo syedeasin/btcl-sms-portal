@@ -71,8 +71,11 @@ export default function RegisterPage() {
   const [secondsLeft, setSecondsLeft] = useState<number>(300);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
   const [verifiedPhone, setVerifiedPhone] = useState('');
   const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [canSendOtp, setCanSendOtp] = useState(false);
+  const [canProceedPersonal, setCanProceedPersonal] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const router = useRouter();
   const { checkAuth } = useAuth();
@@ -111,6 +114,44 @@ export default function RegisterPage() {
       }
     }
   }, [verifiedPhone, verifiedEmail, step, personalInfoForm]);
+
+  // Watch verification form fields for Send OTP button
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const subscription = verificationForm.watch((value) => {
+        if (!otpSent) {
+          // For Send OTP button
+          const hasAllFields = !!(value.companyName && value.email && value.phone);
+          const emailValid = !verificationForm.formState.errors.email;
+          const phoneValid = !verificationForm.formState.errors.phone;
+          setCanSendOtp(hasAllFields && emailValid && phoneValid);
+        } else {
+          // For Verify OTP button
+          const hasOtp = !!(value.otp);
+          setCanSendOtp(hasOtp);
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [verificationForm, otpSent]);
+
+  // Watch personal info form fields for Next Step button
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const subscription = personalInfoForm.watch((value) => {
+        const hasAllFields = !!(
+          value.firstName &&
+          value.lastName &&
+          value.password &&
+          value.confirmPassword
+        );
+        const passwordValid = !personalInfoForm.formState.errors.password;
+        const confirmValid = !personalInfoForm.formState.errors.confirmPassword;
+        setCanProceedPersonal(hasAllFields && passwordValid && confirmValid);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [personalInfoForm]);
 
   // start timer helper
   const startTimer = (initial = 60) => {
@@ -183,6 +224,10 @@ export default function RegisterPage() {
   };
 
   const handleBack = () => {
+    // Don't allow going back to Verification if OTP is verified
+    if (step === 2 && otpVerified) {
+      return;
+    }
     if (step > 1) setStep((prev) => prev - 1);
   };
 
@@ -216,11 +261,18 @@ export default function RegisterPage() {
       setIsSubmitting(true);
       const { phone, otp, email } = verificationForm.getValues();
       const response = await verifyOtp(phone, otp);
-      console.log('OTP verified:', response);
-      setVerifiedPhone(phone);
-      setVerifiedEmail(email);
-      toast.success('Phone number verified successfully!');
-      setStep(2); // Move to personal info step
+
+      // Check if OTP verification was successful
+      if (response === 'OTP verified successfully.' || response.message === 'OTP verified successfully.') {
+        console.log('OTP verified:', response);
+        setVerifiedPhone(phone);
+        setVerifiedEmail(email);
+        setOtpVerified(true); // Set OTP as verified
+        toast.success('Phone number verified successfully!');
+        setStep(2); // Move to personal info step
+      } else {
+        throw new Error('OTP verification failed');
+      }
     } catch (error) {
       console.error('Failed to verify OTP:', error);
       toast.error('Invalid OTP. Please try again.');
@@ -426,23 +478,29 @@ export default function RegisterPage() {
                 <div
                   key={i}
                   onClick={() => {
+                    // Prevent going back to Verification after OTP is verified
+                    if (i === 0 && otpVerified) {
+                      return;
+                    }
+                    // Only allow navigation if conditions are met
                     if (
-                      i === 0 ||
-                      (i === 1 && isVerificationValid) ||
-                      (i === 2 && isVerificationValid && isPersonalInfoValid)
+                      i === 0 && !otpVerified ||
+                      (i === 1 && otpVerified) ||
+                      (i === 2 && otpVerified && isPersonalInfoValid)
                     ) {
                       setStep(i + 1);
                     }
                   }}
-                  className={`flex-1 text-center py-3 border-r last:border-r-0 cursor-pointer ${
+                  className={`flex-1 text-center py-3 border-r last:border-r-0 ${
                     step === i + 1
                       ? 'bg-gray-100 font-medium text-black'
                       : 'bg-white text-black'
                   } ${
-                    (i === 1 && !isVerificationValid) ||
-                    (i === 2 && (!isVerificationValid || !isPersonalInfoValid))
+                    (i === 0 && otpVerified) ||
+                    (i === 1 && !otpVerified) ||
+                    (i === 2 && (!otpVerified || !isPersonalInfoValid))
                       ? 'opacity-50 cursor-not-allowed'
-                      : ''
+                      : 'cursor-pointer'
                   }`}
                 >
                   {i + 1}. {label}
@@ -543,8 +601,12 @@ export default function RegisterPage() {
                         onChange={(e) => {
                           let value = e.target.value.replace(/\s/g, ''); // Remove spaces
 
+                          // If already starts with +880, keep it as is
+                          if (value.startsWith('+880')) {
+                            // Do nothing, it's already in correct format
+                          }
                           // If starts with 01, add +88
-                          if (value.startsWith('01')) {
+                          else if (value.startsWith('01')) {
                             value = '+88' + value;
                           }
                           // If starts with 8801 but no +, add +
@@ -562,7 +624,9 @@ export default function RegisterPage() {
                           let value = e.target.value.replace(/\s/g, ''); // Remove spaces
 
                           // Final formatting on blur
-                          if (value.startsWith('01')) {
+                          if (value.startsWith('+880')) {
+                            // Already in correct format, keep as is
+                          } else if (value.startsWith('01')) {
                             value = '+88' + value;
                           } else if (value.startsWith('8801') && !value.startsWith('+')) {
                             value = '+' + value;
@@ -588,7 +652,7 @@ export default function RegisterPage() {
                       )}
                       {!fieldState.error && !otpSent && (
                         <p className="text-gray-500 text-sm mt-1">
-                          Enter as 01XXXXXXXXX, 8801XXXXXXXXX, or +8801XXXXXXXXX
+                          Enter as: +8801XXXXXXXXX, 8801XXXXXXXXX, or 01XXXXXXXXX
                         </p>
                       )}
                     </>
@@ -654,8 +718,8 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  disabled={isSubmitting}
-                  className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full disabled:opacity-50"
+                  disabled={isSubmitting || (!otpSent && !canSendOtp)}
+                  className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting
                     ? 'Processing...'
@@ -859,16 +923,19 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex justify-between pt-4 gap-4">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="bg-gray-300 px-4 py-2 rounded-md w-full"
-                >
-                  Back
-                </button>
+                {!otpVerified && (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="bg-gray-300 px-4 py-2 rounded-md w-full"
+                  >
+                    Back
+                  </button>
+                )}
                 <button
                   type="submit"
-                  className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full"
+                  disabled={!canProceedPersonal}
+                  className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next Step
                 </button>
@@ -1415,8 +1482,8 @@ export default function RegisterPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full"
+                  disabled={isSubmitting || !otherInfoForm.formState.isValid}
+                  className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Processing...' : 'Complete Registration'}
                 </button>

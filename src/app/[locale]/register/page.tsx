@@ -30,12 +30,15 @@ type VerificationInfo = {
 };
 
 type PersonalInfo = {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
+  fullName: string;
+  alternateNameOther: string;
+  dateOfBirth: string;
+  nidNumber: string;
+  nidDigitType: '10' | '17';
   password: string;
   confirmPassword: string;
+  identityCardFrontSide?: File;
+  identityCardBackSide?: File;
 };
 
 type OtherInfo = {
@@ -47,7 +50,6 @@ type OtherInfo = {
   state: string;
   postalCode: string;
   country: string;
-  nidNumber: string;
   tradeLicenseNumber: string;
   tinNumber: string;
   taxReturnDate: string;
@@ -59,8 +61,6 @@ type OtherInfo = {
   btrcFile?: File | null;
   photoFile?: File | null;
   slaFile?: File | null;
-  identityCardFrontSide?: File;
-  identityCardBackSide?: File;
   bincertificate?: File;
 };
 
@@ -76,6 +76,12 @@ export default function RegisterPage() {
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [canSendOtp, setCanSendOtp] = useState(false);
   const [canProceedPersonal, setCanProceedPersonal] = useState(false);
+  const [nidVerified, setNidVerified] = useState(false);
+  const [nidVerificationFailed, setNidVerificationFailed] = useState(false);
+  const [isVerifyingNid, setIsVerifyingNid] = useState(false);
+  const [nidVerificationData, setNidVerificationData] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const router = useRouter();
   const { checkAuth } = useAuth();
@@ -87,6 +93,9 @@ export default function RegisterPage() {
 
   const personalInfoForm = useForm<PersonalInfo>({
     mode: 'onBlur',
+    defaultValues: {
+      nidDigitType: '10',
+    },
   });
 
   const otherInfoForm = useForm<OtherInfo>({
@@ -102,18 +111,6 @@ export default function RegisterPage() {
   const {
     formState: { isValid: isOtherInfoValid },
   } = otherInfoForm;
-
-  // Pre-fill phone number and email in personal info after verification
-  useEffect(() => {
-    if (step === 2) {
-      if (verifiedPhone) {
-        personalInfoForm.setValue('phone', verifiedPhone);
-      }
-      if (verifiedEmail) {
-        personalInfoForm.setValue('email', verifiedEmail);
-      }
-    }
-  }, [verifiedPhone, verifiedEmail, step, personalInfoForm]);
 
   // Watch verification form fields for Send OTP button
   useEffect(() => {
@@ -140,10 +137,13 @@ export default function RegisterPage() {
     if (typeof window !== 'undefined') {
       const subscription = personalInfoForm.watch((value) => {
         const hasAllFields = !!(
-          value.firstName &&
-          value.lastName &&
+          value.fullName &&
+          value.dateOfBirth &&
+          value.nidNumber &&
           value.password &&
-          value.confirmPassword
+          value.confirmPassword &&
+          value.identityCardFrontSide &&
+          value.identityCardBackSide
         );
         const passwordValid = !personalInfoForm.formState.errors.password;
         const confirmValid = !personalInfoForm.formState.errors.confirmPassword;
@@ -216,7 +216,9 @@ export default function RegisterPage() {
       }
     } else if (step === 2) {
       const isValid = await personalInfoForm.trigger();
-      if (isValid) setStep((prev) => prev + 1);
+      if (isValid) {
+        await handleNidVerification();
+      }
     } else if (step === 3) {
       const isValid = await otherInfoForm.trigger();
       if (isValid) setStep((prev) => prev + 1);
@@ -228,6 +230,10 @@ export default function RegisterPage() {
     if (step === 2 && otpVerified) {
       return;
     }
+    // Don't allow going back to NID Verification if NID is verified
+    if (step === 3 && nidVerified) {
+      return;
+    }
     if (step > 1) setStep((prev) => prev - 1);
   };
 
@@ -235,7 +241,61 @@ export default function RegisterPage() {
     try {
       setIsSubmitting(true);
       const phone = verificationForm.getValues('phone');
+      const email = verificationForm.getValues('email');
       const companyName = verificationForm.getValues('companyName');
+
+      // First, validate the partner data
+      console.log('Validating partner data...');
+      const validateResponse = await fetch('https://a2psms.btcliptelephony.gov.bd/FREESWITCHREST/admin/DashBoard/partner/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          partnerName: companyName,
+          telephone: phone,
+          email: email,
+        }),
+      });
+
+      const validateData = await validateResponse.json();
+      console.log('Validation response:', validateData);
+
+      // Check for validation errors
+      if (!validateResponse.ok || validateData === false) {
+        // Handle specific error messages
+        if (validateData.errorCode === '400 BAD_REQUEST') {
+          if (validateData.message === 'Telephone number already exists') {
+            verificationForm.setError('phone', {
+              type: 'manual',
+              message: 'Telephone number already exists',
+            });
+            setIsSubmitting(false);
+            return;
+          } else if (validateData.message === 'Email already exists') {
+            verificationForm.setError('email', {
+              type: 'manual',
+              message: 'Email already exists',
+            });
+            setIsSubmitting(false);
+            return;
+          } else if (validateData.message === 'Partner Name already exists') {
+            verificationForm.setError('companyName', {
+              type: 'manual',
+              message: 'Company Name already exists',
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        // Generic error if validation failed but no specific message
+        toast.error('Validation failed. Please check your information.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // If validation passed (response is true), proceed with OTP
+      console.log('Validation successful, sending OTP...');
 
       // Store company name in localStorage when sending OTP
       if (companyName) {
@@ -269,7 +329,7 @@ export default function RegisterPage() {
         setVerifiedEmail(email);
         setOtpVerified(true); // Set OTP as verified
         toast.success('Phone number verified successfully!');
-        setStep(2); // Move to personal info step
+        setStep(2); // Move to NID verification step
       } else {
         throw new Error('OTP verification failed');
       }
@@ -294,6 +354,66 @@ export default function RegisterPage() {
     }
   };
 
+  const handleNidVerification = async () => {
+    try {
+      setIsVerifyingNid(true);
+      const { fullName, dateOfBirth, nidNumber, nidDigitType } = personalInfoForm.getValues();
+
+      // Build the verification payload
+      const payload = {
+        identify: {
+          nid17Digit: nidDigitType === '17' ? nidNumber : null,
+          nid10Digit: nidDigitType === '10' ? nidNumber : null,
+        },
+        verify: {
+          nameEn: fullName,
+          dateOfBirth: dateOfBirth,
+        },
+      };
+
+      console.log('Sending NID verification request:', payload);
+
+      // Wait for 5 seconds minimum to show the loader
+      const [response] = await Promise.all([
+        fetch('https://a2psms.btcliptelephony.gov.bd/NID/api/v1/nid/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+
+      const data = await response.json();
+      console.log('NID verification response:', data);
+
+      // Check verification status based on the new simplified response
+      if (data.status === true) {
+        // NID verified successfully
+        setNidVerified(true);
+        setNidVerificationFailed(false);
+        setNidVerificationData(data);
+        // Move to next step after showing success
+        setTimeout(() => {
+          setStep(3);
+        }, 2000);
+      } else {
+        // Verification failed - status is false
+        setNidVerified(false);
+        setNidVerificationFailed(true);
+        setNidVerificationData(null);
+      }
+    } catch (error) {
+      console.error('NID verification error:', error);
+      setNidVerified(false);
+      setNidVerificationFailed(true);
+      setNidVerificationData(null);
+    } finally {
+      setIsVerifyingNid(false);
+    }
+  };
+
   const handlePersonalInfoSubmit: SubmitHandler<PersonalInfo> = (data) => {
     console.log('Personal info submitted:', data);
     setStep(3);
@@ -313,15 +433,15 @@ export default function RegisterPage() {
       // Get company name from localStorage
       const companyName = localStorage.getItem('companyName');
 
-        const fullName = `${personalInfoData.firstName} ${personalInfoData.lastName}`;
+        const fullName = personalInfoData.fullName;
       // 2. First call: create partner (NO TOKEN REQUIRED)
       console.log('\n🔵 STEP 2: Creating partner account...');
         const partnerPayload = {
             partnerName: companyName,
-            alternateNameOther: fullName,
+            alternateNameOther: personalInfoData.alternateNameOther || fullName,
             alternateNameInvoice: fullName,
-            telephone: personalInfoData.phone,
-            email: personalInfoData.email,
+            telephone: verifiedPhone,
+            email: verifiedEmail,
             userPassword: personalInfoData.password,
             address1: otherInfoData.address1,
             address2: otherInfoData.address2 || '',
@@ -350,12 +470,12 @@ export default function RegisterPage() {
       // 3. Second call: login to get JWT token
       console.log('\n🔵 STEP 3: Logging in to get JWT token...');
       console.log('Login credentials:', {
-        email: personalInfoData.email,
+        email: verifiedEmail,
         passwordLength: personalInfoData.password.length,
       });
 
       const loginResponse = await loginPartner(
-        personalInfoData.email,
+        verifiedEmail,
         personalInfoData.password
       );
 
@@ -386,14 +506,14 @@ export default function RegisterPage() {
         city: otherInfoData.city ?? null,
         state: otherInfoData.state ?? null,
         postalCode: otherInfoData.postalCode ?? null,
-        nid: otherInfoData.nidNumber ?? null,
+        nid: personalInfoData.nidNumber ?? null,
         tradeLicenseNumber: otherInfoData.tradeLicenseNumber ?? null,
         tin: otherInfoData.tinNumber ?? null,
         taxReturnDate: otherInfoData.taxReturnDate ?? null,
         countryCode: otherInfoData.country ?? null,
         tinCertificate: otherInfoData.tinFile ?? null,
-        nidFront: otherInfoData.identityCardFrontSide ?? null,
-        nidBack: otherInfoData.identityCardBackSide ?? null,
+        nidFront: personalInfoData.identityCardFrontSide ?? null,
+        nidBack: personalInfoData.identityCardBackSide ?? null,
         vatDoc: otherInfoData.jointStockFile ?? null,
         tradeLicense: otherInfoData.tradeLicenseFile ?? null,
         photo: otherInfoData.photoFile ?? null,
@@ -411,7 +531,7 @@ export default function RegisterPage() {
       console.log('\n🔵 STEP 5: Auto-login to main app...');
       try {
         const appLoginResponse = await loginUser({
-          email: personalInfoData.email,
+          email: verifiedEmail,
           password: personalInfoData.password,
         });
 
@@ -420,7 +540,7 @@ export default function RegisterPage() {
           appLoginResponse.idPartner || appLoginResponse.partnerId || idPartner;
 
         setAuthToken(appLoginResponse.token);
-        localStorage.setItem('userEmail', personalInfoData.email);
+        localStorage.setItem('userEmail', verifiedEmail);
         localStorage.setItem('userPassword', personalInfoData.password);
         localStorage.setItem('partnerId', partnerId.toString()); // CRITICAL
 
@@ -463,7 +583,7 @@ export default function RegisterPage() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-black">
               {step === 1 && 'Verify Your Phone Number'}
-              {step === 2 && 'Create Your Account'}
+              {step === 2 && 'Verify Your NID'}
               {step === 3 && 'Upload Your Documents'}
             </h1>
             <p className="text-gray-600">
@@ -473,7 +593,7 @@ export default function RegisterPage() {
 
           {/* Steps header (tabs) */}
           <div className="flex border mb-6">
-            {['Verification', 'Personal Information', 'Other Information'].map(
+            {['Verification', 'NID Verification', 'Other Information'].map(
               (label, i) => (
                 <div
                   key={i}
@@ -482,11 +602,15 @@ export default function RegisterPage() {
                     if (i === 0 && otpVerified) {
                       return;
                     }
+                    // Prevent going back to NID Verification after NID is verified
+                    if (i === 1 && nidVerified) {
+                      return;
+                    }
                     // Only allow navigation if conditions are met
                     if (
                       i === 0 && !otpVerified ||
-                      (i === 1 && otpVerified) ||
-                      (i === 2 && otpVerified && isPersonalInfoValid)
+                      (i === 1 && otpVerified && !nidVerified) ||
+                      (i === 2 && nidVerified && isPersonalInfoValid)
                     ) {
                       setStep(i + 1);
                     }
@@ -497,8 +621,8 @@ export default function RegisterPage() {
                       : 'bg-white text-black'
                   } ${
                     (i === 0 && otpVerified) ||
-                    (i === 1 && !otpVerified) ||
-                    (i === 2 && (!otpVerified || !isPersonalInfoValid))
+                    (i === 1 && (nidVerified || !otpVerified)) ||
+                    (i === 2 && (!nidVerified || !isPersonalInfoValid))
                       ? 'opacity-50 cursor-not-allowed'
                       : 'cursor-pointer'
                   }`}
@@ -514,7 +638,7 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-black font-medium mb-1">
-                  Company Name
+                  Company Name (as per Aggregator License)
                 </label>
                 <Controller
                   name="companyName"
@@ -525,7 +649,7 @@ export default function RegisterPage() {
                       <input
                         type="text"
                         {...field}
-                        placeholder="Enter your company name"
+                        placeholder="Enter company name as per Aggregator License"
                         className={`w-full px-3 py-2 border ${
                           fieldState.error
                             ? 'border-red-500'
@@ -731,194 +855,429 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* STEP 2 - Personal Information */}
+          {/* STEP 2 - NID Verification */}
           {step === 2 && (
-            <form
-              onSubmit={personalInfoForm.handleSubmit(handlePersonalInfoSubmit)}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-medium mb-1">
-                    First Name
-                  </label>
-                  <Controller
-                    name="firstName"
-                    control={personalInfoForm.control}
-                    rules={{ required: 'First name is required' }}
-                    render={({ field, fieldState }) => (
-                      <>
-                        <input
-                          type="text"
-                          {...field}
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  />
+            <>
+              {/* Loading Overlay */}
+              {isVerifyingNid && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[#00A651] mb-4"></div>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-2">NID Data Verifying</h3>
+                      <p className="text-gray-600 text-center">Please Wait...</p>
+                    </div>
+                  </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-black font-medium mb-1">
-                    Last Name
-                  </label>
-                  <Controller
-                    name="lastName"
-                    control={personalInfoForm.control}
-                    rules={{ required: 'Last name is required' }}
-                    render={({ field, fieldState }) => (
-                      <>
-                        <input
-                          type="text"
-                          {...field}
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  />
+              {/* Success Overlay */}
+              {nidVerified && !isVerifyingNid && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-green-500 rounded-full p-4 mb-4">
+                        <svg
+                          className="w-16 h-16 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="3"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-3xl font-bold text-green-600 mb-2 text-center">NID Verification Successful</h3>
+                      <p className="text-gray-600 text-center">
+                        Your National ID has been successfully verified!
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-black font-medium mb-1">
-                  Email Address
-                </label>
-                <Controller
-                  name="email"
-                  control={personalInfoForm.control}
-                  render={({ field }) => (
-                    <input
-                      type="email"
-                      {...field}
-                      value={verifiedEmail}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-gray-100"
+              {/* Failure Overlay */}
+              {nidVerificationFailed && !isVerifyingNid && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-red-500 rounded-full p-4 mb-4">
+                        <svg
+                          className="w-16 h-16 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="3"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-3xl font-bold text-red-600 mb-2">NID Verification Failed</h3>
+                      <p className="text-gray-600 text-center mb-6">
+                        Voter data mismatch. Please provide correct data.
+                      </p>
+                      <button
+                        onClick={() => setNidVerificationFailed(false)}
+                        className="bg-[#00A651] text-white px-6 py-2 rounded-md hover:bg-[#008f44] transition"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <form
+                onSubmit={personalInfoForm.handleSubmit(handlePersonalInfoSubmit)}
+                className="space-y-6"
+              >
+              <div className="max-w-2xl mx-auto px-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-black font-medium mb-1">
+                      Full Name (as shown on your National ID)
+                    </label>
+                    <Controller
+                      name="fullName"
+                      control={personalInfoForm.control}
+                      rules={{ required: 'Full name is required' }}
+                      render={({ field, fieldState }) => (
+                        <>
+                          <input
+                            type="text"
+                            {...field}
+                            placeholder="Enter your full name as shown on NID"
+                            className={`w-full px-3 py-2 border ${
+                              fieldState.error
+                                ? 'border-red-500'
+                                : 'border-gray-300'
+                            } rounded-md text-black`}
+                          />
+                          {fieldState.error && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {fieldState.error.message}
+                            </p>
+                          )}
+                        </>
+                      )}
                     />
-                  )}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Email address verified and cannot be changed
-                </p>
-              </div>
+                  </div>
 
-              <div>
-                <label className="block text-black font-medium mb-1">
-                  Phone Number
-                </label>
-                <Controller
-                  name="phone"
-                  control={personalInfoForm.control}
-                  render={({ field }) => (
-                    <input
-                      type="tel"
-                      {...field}
-                      value={verifiedPhone}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-gray-100"
+                  <div>
+                    <label className="block text-black font-medium mb-1">
+                      Date of Birth
+                    </label>
+                    <Controller
+                      name="dateOfBirth"
+                      control={personalInfoForm.control}
+                      rules={{ required: 'Date of birth is required' }}
+                      render={({ field, fieldState }) => (
+                        <>
+                          <input
+                            type="date"
+                            {...field}
+                            placeholder="YYYY-MM-DD"
+                            onKeyDown={(e) => {
+                              // Allow typing: numbers, backspace, delete, arrows, tab
+                              const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', '-'];
+                              if (!allowedKeys.includes(e.key) && !/[0-9]/.test(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            className={`w-full px-3 py-2 border ${
+                              fieldState.error
+                                ? 'border-red-500'
+                                : 'border-gray-300'
+                            } rounded-md text-black`}
+                          />
+                          {fieldState.error && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {fieldState.error.message}
+                            </p>
+                          )}
+                        </>
+                      )}
                     />
-                  )}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Phone number verified and cannot be changed
-                </p>
-              </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-black font-medium mb-1">
-                    Password
-                  </label>
-                  <Controller
-                    name="password"
-                    control={personalInfoForm.control}
-                    rules={{
-                      required: 'Password is required',
-                      minLength: {
-                        value: 8,
-                        message: 'Password must be at least 8 characters',
-                      },
-                      validate: {
-                        hasLowercase: (value) =>
-                          /[a-z]/.test(value) ||
-                          'Must contain lowercase letter',
-                        hasUppercase: (value) =>
-                          /[A-Z]/.test(value) ||
-                          'Must contain uppercase letter',
-                        hasNumber: (value) =>
-                          /[0-9]/.test(value) || 'Must contain number',
-                      },
-                    }}
-                    render={({ field, fieldState }) => (
-                      <>
-                        <input
-                          type="password"
-                          {...field}
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
+                  <div>
+                    <label className="block text-black font-medium mb-2">
+                      NID Type
+                    </label>
+                    <Controller
+                      name="nidDigitType"
+                      control={personalInfoForm.control}
+                      render={({ field }) => (
+                        <div className="flex gap-6">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              {...field}
+                              value="10"
+                              checked={field.value === '10'}
+                              className="mr-2"
+                            />
+                            <span className="text-black">10 Digit NID</span>
+                          </label>
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              {...field}
+                              value="17"
+                              checked={field.value === '17'}
+                              className="mr-2"
+                            />
+                            <span className="text-black">17 Digit NID</span>
+                          </label>
+                        </div>
+                      )}
+                    />
+                    {personalInfoForm.watch('nidDigitType') === '17' && (
+                      <p className="text-blue-600 text-sm mt-2">
+                        💡 Please add birth year with the NID number to match 17 digits
+                      </p>
                     )}
-                  />
-                </div>
+                  </div>
 
-                <div>
-                  <label className="block text-black font-medium mb-1">
-                    Confirm Password
-                  </label>
-                  <Controller
-                    name="confirmPassword"
-                    control={personalInfoForm.control}
-                    rules={{
-                      required: 'Please confirm your password',
-                      validate: (value) =>
-                        value === personalInfoForm.watch('password') ||
-                        'Passwords do not match',
-                    }}
-                    render={({ field, fieldState }) => (
-                      <>
-                        <input
-                          type="password"
-                          {...field}
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
+                  <div>
+                    <label className="block text-black font-medium mb-1">
+                      NID Number
+                    </label>
+                    <Controller
+                      name="nidNumber"
+                      control={personalInfoForm.control}
+                      rules={{
+                        required: 'NID number is required',
+                        validate: (value) => {
+                          const digitType = personalInfoForm.watch('nidDigitType');
+                          if (digitType === '10' && value.length !== 10) {
+                            return 'NID must be exactly 10 digits';
+                          }
+                          if (digitType === '17' && value.length !== 17) {
+                            return 'NID must be exactly 17 digits';
+                          }
+                          if (!/^\d+$/.test(value)) {
+                            return 'NID must contain only numbers';
+                          }
+                          return true;
+                        },
+                      }}
+                      render={({ field, fieldState }) => (
+                        <>
+                          <input
+                            type="text"
+                            {...field}
+                            placeholder={
+                              personalInfoForm.watch('nidDigitType') === '10'
+                                ? 'Enter 10-digit NID'
+                                : 'Enter 17-digit NID'
+                            }
+                            maxLength={personalInfoForm.watch('nidDigitType') === '10' ? 10 : 17}
+                            className={`w-full px-3 py-2 border ${
+                              fieldState.error
+                                ? 'border-red-500'
+                                : 'border-gray-300'
+                            } rounded-md text-black`}
+                          />
+                          {fieldState.error && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {fieldState.error.message}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    />
+                  </div>
+
+                  {/* 2-Column Grid for NID Uploads and Passwords */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-black font-medium mb-1">
+                        Upload NID (Front Side)
+                      </label>
+                      <Controller
+                        name="identityCardFrontSide"
+                        control={personalInfoForm.control}
+                        rules={{ required: 'NID front side is required' }}
+                        render={({ field: { onChange }, fieldState }) => (
+                          <>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) =>
+                                onChange(e.target.files?.[0] || null)
+                              }
+                              className={`w-full px-3 py-2 border ${
+                                fieldState.error
+                                  ? 'border-red-500'
+                                  : 'border-gray-300'
+                              } rounded-md text-black`}
+                            />
+                            {fieldState.error && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {fieldState.error.message}
+                              </p>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                  />
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-black font-medium mb-1">
+                        Upload NID (Back Side)
+                      </label>
+                      <Controller
+                        name="identityCardBackSide"
+                        control={personalInfoForm.control}
+                        rules={{ required: 'NID back side is required' }}
+                        render={({ field: { onChange }, fieldState }) => (
+                          <>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) =>
+                                onChange(e.target.files?.[0] || null)
+                              }
+                              className={`w-full px-3 py-2 border ${
+                                fieldState.error
+                                  ? 'border-red-500'
+                                  : 'border-gray-300'
+                              } rounded-md text-black`}
+                            />
+                            {fieldState.error && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {fieldState.error.message}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-black font-medium mb-1">
+                        Password
+                      </label>
+                      <Controller
+                        name="password"
+                        control={personalInfoForm.control}
+                        rules={{
+                          required: 'Password is required',
+                          minLength: {
+                            value: 8,
+                            message: 'Password must be at least 8 characters',
+                          },
+                          validate: {
+                            hasLowercase: (value) =>
+                              /[a-z]/.test(value) ||
+                              'Must contain lowercase letter',
+                            hasUppercase: (value) =>
+                              /[A-Z]/.test(value) ||
+                              'Must contain uppercase letter',
+                            hasNumber: (value) =>
+                              /[0-9]/.test(value) || 'Must contain number',
+                          },
+                        }}
+                        render={({ field, fieldState }) => (
+                          <>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? 'text' : 'password'}
+                                {...field}
+                                className={`w-full px-3 py-2 pr-10 border ${
+                                  fieldState.error
+                                    ? 'border-red-500'
+                                    : 'border-gray-300'
+                                } rounded-md text-black`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                              >
+                                {showPassword ? (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                            {fieldState.error && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {fieldState.error.message}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-black font-medium mb-1">
+                        Confirm Password
+                      </label>
+                      <Controller
+                        name="confirmPassword"
+                        control={personalInfoForm.control}
+                        rules={{
+                          required: 'Please confirm your password',
+                          validate: (value) =>
+                            value === personalInfoForm.watch('password') ||
+                            'Passwords do not match',
+                        }}
+                        render={({ field, fieldState }) => (
+                          <>
+                            <div className="relative">
+                              <input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                {...field}
+                                className={`w-full px-3 py-2 pr-10 border ${
+                                  fieldState.error
+                                    ? 'border-red-500'
+                                    : 'border-gray-300'
+                                } rounded-md text-black`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                              >
+                                {showConfirmPassword ? (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                            {fieldState.error && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {fieldState.error.message}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -933,14 +1292,16 @@ export default function RegisterPage() {
                   </button>
                 )}
                 <button
-                  type="submit"
-                  disabled={!canProceedPersonal}
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canProceedPersonal || isVerifyingNid || nidVerified}
                   className="bg-[#00A651] text-white px-4 py-2 rounded-md w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next Step
+                  {nidVerified ? 'Proceeding to Next Step...' : 'Verify NID & Continue'}
                 </button>
               </div>
             </form>
+            </>
           )}
 
           {/* STEP 3 - Other Information */}
@@ -1075,97 +1436,6 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="w-full">
-                  <label className="block text-black font-medium mb-1">
-                    NID Number
-                  </label>
-                  <Controller
-                    name="nidNumber"
-                    control={otherInfoForm.control}
-                    rules={{ required: 'NID number is required' }}
-                    render={({ field, fieldState }) => (
-                      <>
-                        <input
-                          type="text"
-                          {...field}
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-black font-medium mb-1">
-                    Upload NID (Front Side)
-                  </label>
-                  <Controller
-                    name="identityCardFrontSide"
-                    control={otherInfoForm.control}
-                    rules={{ required: 'Front side is required' }}
-                    render={({ field: { onChange }, fieldState }) => (
-                      <>
-                        <input
-                          type="file"
-                          onChange={(e) =>
-                            onChange(e.target.files?.[0] || null)
-                          }
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-black font-medium mb-1">
-                    Upload NID (Back Side)
-                  </label>
-                  <Controller
-                    name="identityCardBackSide"
-                    control={otherInfoForm.control}
-                    rules={{ required: 'Back side is required' }}
-                    render={({ field: { onChange }, fieldState }) => (
-                      <>
-                        <input
-                          type="file"
-                          onChange={(e) =>
-                            onChange(e.target.files?.[0] || null)
-                          }
-                          className={`w-full px-3 py-2 border ${
-                            fieldState.error
-                              ? 'border-red-500'
-                              : 'border-gray-300'
-                          } rounded-md text-black`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldState.error.message}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  />
-                </div>
-
                 <div>
                   <label className="block text-black font-medium mb-1">
                     Trade License Number
@@ -1473,13 +1743,15 @@ export default function RegisterPage() {
               />
 
               <div className="flex justify-between pt-4 gap-4">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="bg-gray-300 px-4 py-2 rounded-md w-full"
-                >
-                  Back
-                </button>
+                {!nidVerified && (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="bg-gray-300 px-4 py-2 rounded-md w-full"
+                  >
+                    Back
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={isSubmitting || !otherInfoForm.formState.isValid}

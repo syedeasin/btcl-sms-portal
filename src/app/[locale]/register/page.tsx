@@ -23,16 +23,17 @@ const countries = [
 ];
 
 type VerificationInfo = {
+  companyName: string;
+  email: string;
   phone: string;
   otp: string;
-  companyName: string;
 };
 
 type PersonalInfo = {
   firstName: string;
   lastName: string;
-  email: string;
   phone: string;
+  email: string;
   password: string;
   confirmPassword: string;
 };
@@ -71,6 +72,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [verifiedPhone, setVerifiedPhone] = useState('');
+  const [verifiedEmail, setVerifiedEmail] = useState('');
   const intervalRef = useRef<number | null>(null);
   const router = useRouter();
   const { checkAuth } = useAuth();
@@ -98,12 +100,17 @@ export default function RegisterPage() {
     formState: { isValid: isOtherInfoValid },
   } = otherInfoForm;
 
-  // Pre-fill phone number in personal info after verification
+  // Pre-fill phone number and email in personal info after verification
   useEffect(() => {
-    if (verifiedPhone && step === 2) {
-      personalInfoForm.setValue('phone', verifiedPhone);
+    if (step === 2) {
+      if (verifiedPhone) {
+        personalInfoForm.setValue('phone', verifiedPhone);
+      }
+      if (verifiedEmail) {
+        personalInfoForm.setValue('email', verifiedEmail);
+      }
     }
-  }, [verifiedPhone, step, personalInfoForm]);
+  }, [verifiedPhone, verifiedEmail, step, personalInfoForm]);
 
   // start timer helper
   const startTimer = (initial = 60) => {
@@ -207,10 +214,11 @@ export default function RegisterPage() {
   const handleVerifyOtp = async () => {
     try {
       setIsSubmitting(true);
-      const { phone, otp } = verificationForm.getValues();
+      const { phone, otp, email } = verificationForm.getValues();
       const response = await verifyOtp(phone, otp);
       console.log('OTP verified:', response);
       setVerifiedPhone(phone);
+      setVerifiedEmail(email);
       toast.success('Phone number verified successfully!');
       setStep(2); // Move to personal info step
     } catch (error) {
@@ -477,6 +485,41 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-black font-medium mb-1">
+                  Email Address
+                </label>
+                <Controller
+                  name="email"
+                  control={verificationForm.control}
+                  rules={{
+                    required: 'Email is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address',
+                    },
+                  }}
+                  render={({ field, fieldState }) => (
+                    <>
+                      <input
+                        type="email"
+                        {...field}
+                        placeholder="Enter your email address"
+                        className={`w-full px-3 py-2 border ${
+                          fieldState.error
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded-md text-black`}
+                      />
+                      {fieldState.error && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {fieldState.error.message}
+                        </p>
+                      )}
+                    </>
+                  )}
+                />
+              </div>
+              <div>
+                <label className="block text-black font-medium mb-1">
                   Phone Number
                 </label>
                 <Controller
@@ -659,32 +702,19 @@ export default function RegisterPage() {
                 <Controller
                   name="email"
                   control={personalInfoForm.control}
-                  rules={{
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
-                  }}
-                  render={({ field, fieldState }) => (
-                    <>
-                      <input
-                        type="email"
-                        {...field}
-                        className={`w-full px-3 py-2 border ${
-                          fieldState.error
-                            ? 'border-red-500'
-                            : 'border-gray-300'
-                        } rounded-md text-black`}
-                      />
-                      {fieldState.error && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {fieldState.error.message}
-                        </p>
-                      )}
-                    </>
+                  render={({ field }) => (
+                    <input
+                      type="email"
+                      {...field}
+                      value={verifiedEmail}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-black bg-gray-100"
+                    />
                   )}
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  Email address verified and cannot be changed
+                </p>
               </div>
 
               <div>

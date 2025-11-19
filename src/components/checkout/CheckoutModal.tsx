@@ -10,8 +10,7 @@ import { initiateSSLCommerzPayment } from '@/lib/api-client/payment';
 export default function CheckoutModal({ pkg, isOpen, onClose }: any) {
 
     const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
+        fullName: '',
         phone: '',
         email: '',
         city: '',
@@ -35,24 +34,13 @@ export default function CheckoutModal({ pkg, isOpen, onClose }: any) {
             return;
         }
 
-        if (
-            !formData.firstName ||
-            !formData.email ||
-            !formData.streetAddress ||
-            !formData.city ||
-            !formData.phone
-        ) {
-            alert('Please fill in all required fields.');
-            return;
-        }
-
         if (selectedPayment === 'SSLcommerz') {
             setLoading(true);
             try {
                 const payload = {
                     idPackage: pkg.id,
                     idPartner: 182,
-                    cusName: formData.firstName + ' ' + formData.lastName,
+                    cusName: formData.fullName,
                     cusEmail: formData.email,
                     cusAdd1: formData.streetAddress,
                     cusCity: formData.city,

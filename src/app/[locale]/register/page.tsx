@@ -89,17 +89,53 @@ export default function RegisterPage() {
   // Form hooks for each step
   const verificationForm = useForm<VerificationInfo>({
     mode: 'onBlur',
+    defaultValues: {
+      companyName: '',
+      email: '',
+      phone: '',
+      otp: '',
+    },
   });
 
   const personalInfoForm = useForm<PersonalInfo>({
     mode: 'onBlur',
     defaultValues: {
+      fullName: '',
+      alternateNameOther: '',
+      dateOfBirth: '',
+      nidNumber: '',
       nidDigitType: '10',
+      password: '',
+      confirmPassword: '',
+      identityCardFrontSide: undefined,
+      identityCardBackSide: undefined,
     },
   });
 
   const otherInfoForm = useForm<OtherInfo>({
     mode: 'onBlur',
+    defaultValues: {
+      address1: '',
+      address2: '',
+      address3: '',
+      address4: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: 'BD',
+      tradeLicenseNumber: '',
+      tinNumber: '',
+      taxReturnDate: '',
+      termsAccepted: false,
+      tradeLicenseFile: null,
+      tinFile: null,
+      taxReturnFile: null,
+      jointStockFile: null,
+      btrcFile: null,
+      photoFile: null,
+      slaFile: null,
+      bincertificate: undefined,
+    },
   });
 
   const {
@@ -323,6 +359,7 @@ export default function RegisterPage() {
       const response = await verifyOtp(phone, otp);
 
       // Check if OTP verification was successful
+      // @ts-ignore
       if (response === 'OTP verified successfully.' || response.message === 'OTP verified successfully.') {
         console.log('OTP verified:', response);
         setVerifiedPhone(phone);

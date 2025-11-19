@@ -23,7 +23,7 @@ export default function OrderSummary({
             <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${pkg.price.toFixed(2)}</span>
+                    <span>৳{pkg.price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                     <span>Shipping</span>
@@ -32,7 +32,7 @@ export default function OrderSummary({
                 <hr className="border-btcl-gray-300" />
                 <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>${pkg.price.toFixed(2)}</span>
+                    <span>৳{pkg.price.toFixed(2)}</span>
                 </div>
             </div>
 

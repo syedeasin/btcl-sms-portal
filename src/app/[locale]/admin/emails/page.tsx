@@ -51,11 +51,22 @@ const SERVICE_LABEL: Record<string, string> = {
 
 const PAGE_SIZE = 20;
 
+// TelcoREST stamps email logs with LocalDateTime.now() and the Services container
+// runs on UTC, so createdAt arrives as a zoneless UTC wall clock ("2026-09-06T13:07:38").
+// Left alone the browser reads that as local time and renders it 6 hours behind Dhaka,
+// so pin the parse to UTC and the display to Bangladesh time.
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  // Only assume UTC when the backend sent no zone of its own. If it ever starts
+  // sending an offset, honour that instead of shifting the value a second time.
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(iso);
+  const hasTime = /\d{2}:\d{2}/.test(iso);
+  const d = new Date(hasZone || !hasTime ? iso : `${iso.replace(' ', 'T')}Z`);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dhaka',
+  });
 }
 
 export default function AdminEmailsPage() {

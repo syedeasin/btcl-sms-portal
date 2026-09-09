@@ -99,6 +99,25 @@ echo -e "${GREEN}Upload complete!${NC}"
 # Step 4: Deploy to LXC container and start with PM2
 echo -e "\n${YELLOW}Step 4: Deploying to LXC container...${NC}"
 
+# The Services container is default-denied to the internet so a compromised app
+# cannot fetch a miner payload or reach a mining pool. A deploy legitimately needs
+# the npm registry, so open it for this run only and close it again afterwards --
+# the trap fires even if the deploy fails, so the hole never stays open.
+close_npm_egress() {
+    "${SSH[@]}" -p $JUMP_PORT -o StrictHostKeyChecking=no $JUMP_USER@$JUMP_HOST \
+        "sudo /usr/local/sbin/npm-egress.sh off" 2>/dev/null || \
+        echo -e "${RED}WARNING: could not close npm egress - run 'sudo /usr/local/sbin/npm-egress.sh off' on $JUMP_HOST${NC}"
+}
+echo -e "\n${YELLOW}Opening npm egress for this deploy...${NC}"
+if "${SSH[@]}" -p $JUMP_PORT -o StrictHostKeyChecking=no $JUMP_USER@$JUMP_HOST \
+        "sudo /usr/local/sbin/npm-egress.sh on"; then
+    trap close_npm_egress EXIT
+else
+    echo -e "${RED}Error: could not open npm egress on the jump host.${NC}"
+    echo "npm install inside the container will fail without it."
+    exit 1
+fi
+
 "${SSH[@]}" -p $JUMP_PORT -o StrictHostKeyChecking=no \
     $JUMP_USER@$JUMP_HOST << 'ENDSSH'
 
